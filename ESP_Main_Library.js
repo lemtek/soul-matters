@@ -15,7 +15,6 @@ function displayClientAlert_onSave() {
         var entityId = lookupFieldObject.getValue()[0].id;
         var entityName = lookupFieldObject.getValue()[0].entityType;
         var entityLabel = lookupFieldObject.getValue()[0].name;
-        var resultXML = getDetails(EntityName, EntityId);
     }
 
         // set the value of the new_clientalerts field
