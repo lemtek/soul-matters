@@ -1,0 +1,2996 @@
+Write-Host -ForegroundColor yellow "#######################################################"
+""
+Write-Host -ForegroundColor Green "365 Management Script"
+Write-Host -ForegroundColor Green "By Lee Bhogal - March 2015"
+Write-Host -ForegroundColor Green "VERSION: 11.0"
+Write-Host -ForegroundColor Green "Copyright 2016 - Lee Bhogal - All Rights Reserved"
+""
+Write-Host -ForegroundColor yellow "#######################################################"
+""
+Write-Host -ForegroundColor Green "CHANGE_LOG:
+TO ADD       - All scripts from root of scripting folder
+             - Check for an open instance of Exchange in [Section 4]
+             - Add error check loop for 'The specified mailbox n.burridge@takeparts.co.uk doesn't exist.' in [New 365 User] after entering details into form.
+                - If the mailbox does not exist, do not continue with script.
+
+v11: 12/01/16 - Added 'Quick Connect' section
+v10: 14/12/15 - Modified for ESP Projects 
+v9:  03/06/15 - Began adding Cyan coloured commands that are running for added info
+              - Developed the Do While loop to return the admin to start of that script concept and began implementing into individual scripts
+v8:  01/06/15 - Compiled Do While loop to ask if the admin has finished the job (needs adding after each script)
+              - Tested this loop and added to the New User script to start with.
+v7:  20/05/15 - Added Add-DLMemb function to streamline distribution group adding. Call with Add-DLMemb, `$DL must be specified.
+              - Added Prompt-DL function to loop adding more DLs.
+              - Added MSOL Tennant details script
+v6:  05/05/15 - Began adding scripts from 'Google Drive\Not Yet Scripted'
+              - Tweaks added to New 365 User Process
+              - Added Custom Attribute Script
+              - Added Mailbox Management Scripts
+v5:  29/04/15 - Modified [UserForm] to automatically add MsolAccountSku
+              - Added * to mark required fields in [UserForm]
+              - Added 'Already entered credentials button in [Section 3]'
+              - Removed '`$Credential=`$null' from [Section 1]
+              - Added masked password textbox to [UserForm]
+v4:  28/04/05 - Added license check loop and redirect to web portal if no spare licences [Section5, Switch0]
+              - Added section headers and colour for easier navigation/troubleshooting
+              - Added Error Log variable
+              - Began Verbose outputting to console
+                    - Section 6 smoothed out
+                    - All cancel button errors cleaned up
+v3:  11/04/05 - Compiled the MSOL script package and began compiling the Exchange selections
+v2:  26/03/05 - Added Functions for various tasks
+v1:  10/03/05 - Compiled script"
+""
+Write-Host -ForegroundColor yellow "#######################################################"
+
+#########################
+#########################
+"-------------------"
+Write-Host -ForegroundColor Green "PRE-SECTION: Begin[QuickConnect]"
+"-------------------"
+#Begin[QuickConnect]
+
+$title = "Quick Connect"
+$message = "Would you like to quickly connect to Exchange Online/MSOL for implicit remoting of a command?"
+
+$yes0 = New-Object System.Management.Automation.Host.ChoiceDescription "&Yes","Bring up the connection methods"                          #0
+$no0 = New-Object System.Management.Automation.Host.ChoiceDescription "&No","Enter the management script"                                #1
+$canc = New-Object System.Management.Automation.Host.ChoiceDescription "&Cancel","Cancel and exit the process"                           #2
+
+$options = [System.Management.Automation.Host.ChoiceDescription[]]($yes0, $no0, $canc)
+
+$result = $host.ui.PromptForChoice($title, $message, $options, 2)
+
+switch ($result) {
+    0 <#yes0#> {
+    Write-Host -ForegroundColor Yellow "User Selected 0. Yes"
+        ""
+    Write-Host -ForegroundColor Yellow "Rolling into QuickConnect...."
+        ""
+        $cont0 = 0
+                break
+    } #End 0
+    1 <#no0#> {
+    Write-Host -ForegroundColor Yellow "User Selected 1. No"
+        ""
+    Write-Host -ForegroundColor Yellow "Continuing with script...."
+        ""
+        $cont0 = 1
+                break
+    } #End 1
+    2 <#can#> {
+    Write-Host -ForegroundColor Red "User Selected 3. Cancel"
+        Write-Host -ForegroundColor Red "Action Cancelled"
+        Write-Host -ForegroundColor Red "Ending Script"
+        Write-Host -ForegroundColor Red "Script is sad that it didn't get a run"
+        Exit
+    } #End 2
+} #End Switch
+
+if ($cont0 -eq 0) {
+    #Begin[ConnectionMethod]
+    $title = "Connection Method"
+    $message = "Please select the type of connection to make"
+
+    $conMSOL = New-Object System.Management.Automation.Host.ChoiceDescription "&MSOL","Connect to Microsoft Online Services (MSOL)"
+    $conEOL = New-Object System.Management.Automation.Host.ChoiceDescription "&Exchange","Connect to Exchange Online"
+    $can = New-Object System.Management.Automation.Host.ChoiceDescription "&cancel","Cancel and Exit"
+
+    $options = [System.Management.Automation.Host.ChoiceDescription[]]($conMSOL, $conEOL, $can)
+
+    $result = $host.ui.PromptForChoice($title, $message, $options, 2)
+
+    switch ($result) {
+        0 <#MSOL#> {
+		        Write-Host -ForegroundColor Cyan "User Selected 0. Connect to MSOL"
+                ""
+                $creds = Get-Credential
+                Connect-MsolService -Credential $creds
+                ""
+                    Write-Host -ForegroundColor Cyan "MSOL Connected"
+                    ""
+		                break
+        } #End 0
+        1 <#EXCH#> {
+	            Write-Host -ForegroundColor Yellow "User Selected 1. Connect to Exchange Services"
+                    ""
+                    $creds = Get-Credential
+                    ""
+                Write-Host -ForegroundColor Green "Running Cmdlet: ... "
+                Write-Host -ForegroundColor Cyan "`$Session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.outlook.com/powershell/ -Credential `$creds -Authentication Basic -AllowRedirection"
+                ""	
+                $Session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.outlook.com/powershell/ -Credential $creds -Authentication Basic -AllowRedirection
+		                Import-PSSession $session
+                            ""
+                                Write-Host -ForegroundColor Cyan "Exchange Online Services Connected"
+                                ""
+		                            break
+        } #End 1
+        2 <#CANC#> {
+            Write-Host -ForegroundColor Red "Action Cancelled"
+                Write-Host -ForegroundColor Red "Ending Script"
+                Write-Host -ForegroundColor Red "Script is sad that it didn't get a run"
+                    exit
+		            break
+        } #End 2
+    } #End Switch
+} 
+    else {
+
+
+    #########################
+    #########################
+
+
+
+    #########################
+    #########################
+    "-------------------"
+    Write-Host -ForegroundColor Green "SECTION 1: Begin[SessionVariables]"
+    "-------------------"
+    #Begin[SessionVariables]
+        $credpath = "C:\Users\$env:username\AppData\Local\Microsoft\Windows\PowerShell\temp_cred.txt"
+        $ErrorLog = "C:\Users\$env:username\AppData\Local\Microsoft\Windows\PowerShell\ErrorLog.txt"
+        Write-Host -ForegroundColor Yellow "Setting [SessionVariables] '`$CredPath' '`$ErrorLog'"
+            if ($company -eq $null) {
+            $company="Please Select a Company"
+            }
+
+            if ($company -eq "Please Select a Company") {
+            $choice="From Below"
+            } else {
+                $choice = "- You may select N/A to continue managing $company"
+            }
+        ""
+    #End[SessionVariables]
+
+    #########################
+    #########################
+    "-------------------"
+    Write-Host -ForegroundColor Green "SECTION 2: Begin[Function]"
+    "-------------------"
+        #Being[Function]
+        function UserForm {
+        [void][System.Reflection.Assembly]::LoadWithPartialName( “System.Windows.Forms”)  #Load Assembly for creating form & UserButton
+        [void][System.Reflection.Assembly]::LoadWithPartialName( “Microsoft.VisualBasic”) #Load Assembly for creating form & UserButton
+
+        #Define the form size & placement 
+            $UserForm = New-Object System.Windows.Forms.Form                        # Makes a blank form Window by calling "System.Windows.Forms.Form"
+            $UserForm.Text = "Data Entry Form"                                      # Window Title
+            $UserForm.Size = New-Object System.Drawing.Size(440,300)                # Size of the form in pixels (Width,Height)
+            $UserForm.StartPosition = "CenterScreen"                                # Displays from in the centre of the screen
+            $UserForm.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen;
+
+        #Add[AutoSizing]
+            $UserForm.AutoSize = $True
+            $UserForm.AutoSizeMode = "GrowAndShrink"                                #GrowAndShrink,GrowOnly
+
+        # New User Form Label
+            $UserLabel = New-Object System.Windows.Forms.Label                      # Adds a label
+            $UserLabel.Location = New-Object System.Drawing.Size(10,10)             # Location of the label (left,top)
+            $UserLabel.Size = New-Object System.Drawing.Size(150,20)                # Label size (width,height)
+            $UserLabel.Text = "New User Form:"                                      # Label text
+            $UserFont = New-Object System.Drawing.Font("Times New Roman",10,[System.Drawing.FontStyle]::Bold) #FontStyles:Regular,Bold,Italic,Underline,Strikeout
+            $UserLabel.Font = $UserFont
+
+        # UPN
+            $UserLabel1 = New-Object System.Windows.Forms.Label;
+            $UserLabel1.Location = New-Object System.Drawing.Size(10,60)            # Location of the label (left,top)
+            $UserLabel1.Size = New-Object System.Drawing.Size(130,20)               # Label size (width,height)
+            $UserLabel1.Text = "* User Principal Name:"                             # Label text
+            $UserTextBox1 = New-Object System.Windows.Forms.TextBox;                # Adds a textbox
+            $UserTextBox1 = New-Object System.Windows.Forms.TextBox                 # Adds a textbox
+            $UserTextBox1.Location = New-Object System.Drawing.Size(150,55)         # Location of the texbox (left,top)
+            $UserTextBox1.Size = New-Object System.Drawing.Size(260,20)             # textbox Size (width,height) 
+         
+        # DisplayName
+            $UserLabel2 = New-Object System.Windows.Forms.Label                     # Adds a label
+            $UserLabel2.Location = New-Object System.Drawing.Size(10,80)            # Location of the label (left,top)
+            $UserLabel2.Size = New-Object System.Drawing.Size(90,20)                # Label size (width,height)
+            $UserLabel2.Text = "* Display Name:"                                    # Label text                        
+            $UserTextBox2 = New-Object System.Windows.Forms.TextBox                 # Adds a textbox
+            $UserTextBox2.Location = New-Object System.Drawing.Size(150,75)         # Location of the texbox (left,top)
+            $UserTextBox2.Size = New-Object System.Drawing.Size(260,20)             # textbox Size (width,height)
+
+        # FirstName
+            $UserLabel3 = New-Object System.Windows.Forms.Label                     # Adds a label
+            $UserLabel3.Location = New-Object System.Drawing.Size(10,100)           # Location of the label (left,top)
+            $UserLabel3.Size = New-Object System.Drawing.Size(90,20)                # Label size (width,height)
+            $UserLabel3.Text = "* First Name:"                                      # Label text
+            $UserTextBox3 = New-Object System.Windows.Forms.TextBox                 # Adds a textbox
+            $UserTextBox3.Location = New-Object System.Drawing.Size(150,95)         # Location of the texbox (left,top)
+            $UserTextBox3.Size = New-Object System.Drawing.Size(260,20)             # textbox Size (width,height)
+
+        # SurName
+            $UserLabel4 = New-Object System.Windows.Forms.Label                     # Adds a label
+            $UserLabel4.Location = New-Object System.Drawing.Size(10,120)           # Location of the label (left,top)
+            $UserLabel4.Size = New-Object System.Drawing.Size(90,20)                # Label size (width,height)
+            $UserLabel4.Text = "* Surname:"                                         # Label text
+            $UserTextBox4 = New-Object System.Windows.Forms.TextBox                 # Adds a textbox
+            $UserTextBox4.Location = New-Object System.Drawing.Size(150,115)        # Location of the texbox (left,top)
+            $UserTextBox4.Size = New-Object System.Drawing.Size(260,20)             # textbox Size (width,height)
+
+        # Pass
+            $UserLabel5 = New-Object System.Windows.Forms.Label                     # Adds a label
+            $UserLabel5.Location = New-Object System.Drawing.Size(10,140)           # Location of the label (left,top)
+            $UserLabel5.Size = New-Object System.Drawing.Size(90,20)                # Label size (width,height)
+            $UserLabel5.Text = "* Password:"                                        # Label text
+            $UserTextBox5 = New-Object System.Windows.Forms.MaskedTextBox           # Adds a Masked textbox
+            $UserTextBox5.PasswordChar = "*"
+            $UserTextBox5.Location = New-Object System.Drawing.Size(150,135)        # Location of the texbox (left,top)
+            $UserTextBox5.Size = New-Object System.Drawing.Size(260,20)             # textbox Size (width,height)
+
+        # Dept
+            $UserLabel6 = New-Object System.Windows.Forms.Label                     # Adds a label
+            $UserLabel6.Location = New-Object System.Drawing.Size(10,160)           # Location of the label (left,top)
+            $UserLabel6.Size = New-Object System.Drawing.Size(90,20)                # Label size (width,height)
+            $UserLabel6.Text = "Department"                                         # Label text
+            $UserTextBox6 = New-Object System.Windows.Forms.TextBox                 # Adds a textbox
+            $UserTextBox6.Location = New-Object System.Drawing.Size(150,155)        # Location of the texbox (left,top)
+            $UserTextBox6.Size = New-Object System.Drawing.Size(260,20)             # textbox Size (width,height)
+
+        # Mob
+            $UserLabel7 = New-Object System.Windows.Forms.Label                     # Adds a label
+            $UserLabel7.Location = New-Object System.Drawing.Size(10,180)           # Location of the label (left,top)
+            $UserLabel7.Size = New-Object System.Drawing.Size(90,20)                # Label size (width,height)
+            $UserLabel7.Text = "Mobile Number:"                                     # Label text
+            $UserTextBox7 = New-Object System.Windows.Forms.TextBox                 # Adds a textbox
+            $UserTextBox7.Location = New-Object System.Drawing.Size(150,175)        # Location of the texbox (left,top)
+            $UserTextBox7.Size = New-Object System.Drawing.Size(260,20)             # textbox Size (width,height)
+
+        # Phone
+            $UserLabel8 = New-Object System.Windows.Forms.Label                     # Adds a label
+            $UserLabel8.Location = New-Object System.Drawing.Size(10,200)           # Location of the label (left,top)
+            $UserLabel8.Size = New-Object System.Drawing.Size(90,20)                # Label size (width,height)
+            $UserLabel8.Text = "Office Phone:"                                      # Label text
+            $UserTextBox8 = New-Object System.Windows.Forms.TextBox                 # Adds a textbox
+            $UserTextBox8.Location = New-Object System.Drawing.Size(150,195)        # Location of the texbox (left,top)
+            $UserTextBox8.Size = New-Object System.Drawing.Size(260,20)             # textbox Size (width,height)
+
+        # Office
+            $UserLabel9 = New-Object System.Windows.Forms.Label                     # Adds a label
+            $UserLabel9.Location = New-Object System.Drawing.Size(10,220)           # Location of the label (left,top)
+            $UserLabel9.Size = New-Object System.Drawing.Size(90,20)                # Label size (width,height)
+            $UserLabel9.Text = "Office Location"                                    # Label text
+            $UserTextBox9 = New-Object System.Windows.Forms.TextBox                 # Adds a textbox
+            $UserTextBox9.Location = New-Object System.Drawing.Size(150,215)        # Location of the texbox (left,top)
+            $UserTextBox9.Size = New-Object System.Drawing.Size(260,20)             # textbox Size (width,height)
+
+        <#Define default values for the input boxes
+            $defaultValue = “”
+            $UserTextBox1.Text = $defaultValue;
+            $UserTextBox2.Text = $defaultValue;
+            $UserTextBox3.Text = $defaultValue;#>
+
+        #define OK UserButton
+            $UserButton = New-Object System.Windows.Forms.Button                    # Adds a UserButton
+            $UserButton.Location = New-Object System.Drawing.Size(140,240)          # Location for the UserButton from (left,top)
+            $UserButton.Size = New-Object System.Drawing.Size(75,23)                # Size of the UserButton (width,height)
+            $UserButton.Text = "OK"                                                 # Text to display on the UserButton
+        # Adds a CANCEL UserButton to the form
+            $cUserButton = New-Object System.Windows.Forms.Button                   # Adds a UserButton
+            $cUserButton.Location = New-Object System.Drawing.Size(225,240)         # Location for the UserButton from (left,top)
+            $cUserButton.Size = New-Object System.Drawing.Size(75,23)               # Size of the UserButton (width,height)
+            $cUserButton.Text = "Cancel"                                            # Text to display on the UserButton
+            $cUserButton.Add_Click({$UserForm.Close()})                             # Captures the data entered into the text box
+
+        #This is when you have to close the form after getting values
+            $eventHandler = [System.EventHandler]{
+            $UserTextBox1.Text;
+            $UserTextBox2.Text;
+            $UserTextBox3.Text;
+            $UserForm.Close();};
+                $UserButton.Add_Click($eventHandler) ;
+
+        #Add controls to the text box
+            $UserForm.Controls.Add($UserButton);
+            $UserForm.Controls.Add($cUserButton);
+            $UserForm.Controls.Add($UserLabel);
+            $UserForm.Controls.Add($UserLabel1);
+            $UserForm.Controls.Add($UserLabel2);
+            $UserForm.Controls.Add($UserLabel3);
+            $UserForm.Controls.Add($UserLabel4);
+            $UserForm.Controls.Add($UserLabel5);
+            $UserForm.Controls.Add($UserLabel6);
+            $UserForm.Controls.Add($UserLabel7);
+            $UserForm.Controls.Add($UserLabel8);
+            $UserForm.Controls.Add($UserLabel9);
+            $UserForm.Controls.Add($UserTextBox1);
+            $UserForm.Controls.Add($UserTextBox2);
+            $UserForm.Controls.Add($UserTextBox3);
+            $UserForm.Controls.Add($UserTextBox4);
+            $UserForm.Controls.Add($UserTextBox5);
+            $UserForm.Controls.Add($UserTextBox6);
+            $UserForm.Controls.Add($UserTextBox7);
+            $UserForm.Controls.Add($UserTextBox8);
+            $UserForm.Controls.Add($UserTextBox9);
+            $ret = $UserForm.ShowDialog();
+
+    # Ensures the form opens at the front of the topmost window on the desktop
+            $UserForm.Topmost = $True  
+
+        #return values
+        return $UserTextBox0.Text, $UserTextBox1.Text, $UserTextBox2.Text, $UserTextBox3.Text, $UserTextBox4.Text, $UserTextBox5.Text, $UserTextBox6.Text, $UserTextBox7.Text, $UserTextBox8.Text, $UserTextBox9.Text
+
+    } #End UserForm
+        function PCLEmail {
+        [void][System.Reflection.Assembly]::LoadWithPartialName( “System.Windows.Forms”)  #Load Assembly for creating form & button
+        [void][System.Reflection.Assembly]::LoadWithPartialName( “Microsoft.VisualBasic”) #Load Assembly for creating form & button
+
+        #Define the form size & placement
+            $objForm = New-Object System.Windows.Forms.Form                      # Makes a blank form Window by calling "System.Windows.Forms.Form"
+            $objForm.Text = "Paradise Email"                                    # Window Title
+            $objForm.Size = New-Object System.Drawing.Size(440,300)              # Size of the form in pixels (Width,Height)
+            $objForm.StartPosition = "CenterScreen"                              # Displays from in the centre of the screen
+            $objform.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen;
+
+        #Add[AutoSizing]
+            $objform.AutoSize = $True
+            $objform.AutoSizeMode = "GrowAndShrink" #GrowAndShrink,GrowOnly
+
+        # New User Form Label
+            $objLabel = New-Object System.Windows.Forms.Label                                             # Adds a label
+            $objLabel.Location = New-Object System.Drawing.Size(10,10)                                    # Location of the label (left,top)
+            $objLabel.Size = New-Object System.Drawing.Size(350,20)                                       # Label size (width,height)
+            $objLabel.Text = "Please enter your Paradise Email:"                                                             # Label text
+            $Font = New-Object System.Drawing.Font("Times New Roman",10,[System.Drawing.FontStyle]::Bold) #FontStyles:Regular,Bold,Italic,Underline,Strikeout
+            $objLabel.Font = $Font
+       
+        # email
+            $objLabel0 = New-Object System.Windows.Forms.Label;
+            $objLabel0.Location = New-Object System.Drawing.Size(10,40)           # Location of the label (left,top)
+            $objLabel0.Size = New-Object System.Drawing.Size(130,20)              # Label size (width,height)
+            $objLabel0.Text = "Email Address:"                                    # Label text
+            $objTextBox0 = New-Object System.Windows.Forms.TextBox;
+            $objTextBox0 = New-Object System.Windows.Forms.TextBox                # Adds a textbox
+            $objTextBox0.Location = New-Object System.Drawing.Size(150,35)        # Location of the texbox (left,top)
+            $objTextBox0.Size = New-Object System.Drawing.Size(260,20)            # textbox Size (width,height)
+    
+        # masked password
+            $objLabel1 = New-Object System.Windows.Forms.Label;
+            $objLabel1.Location = New-Object System.Drawing.Size(10,60)           # Location of the label (left,top)
+            $objLabel1.Size = New-Object System.Drawing.Size(130,20)              # Label size (width,height)
+            $objLabel1.Text = "Password:"                                         # Label text
+            $MaskedTextBox1 = New-Object System.Windows.Forms.MaskedTextBox;
+            $MaskedTextBox1.PasswordChar = '*'
+            $MaskedTextBox1.Location = New-Object System.Drawing.Size(150,55)        # Location of the texbox (left,top)
+            $MaskedTextBox1.Size = New-Object System.Drawing.Size(260,20)            # textbox Size (width,height) 
+
+        #define OK button
+            $button = New-Object System.Windows.Forms.Button                   # Adds a button
+            $button.Location = New-Object System.Drawing.Size(140,100)          # Location for the button from (left,top)
+            $button.Size = New-Object System.Drawing.Size(75,23)               # Size of the button (width,height)
+            $button.Text = "OK"                                                # Text to display on the button
+        # Adds a CANCEL button to the form
+            $cButton = New-Object System.Windows.Forms.Button               # Adds a button
+            $cButton.Location = New-Object System.Drawing.Size(225,100)     # Location for the button from (left,top)
+            $cButton.Size = New-Object System.Drawing.Size(75,23)           # Size of the button (width,height)
+            $cButton.Text = "Cancel"                                        # Text to display on the button
+            $cButton.Add_Click({$objForm.Close()})                          # Captures the data entered into the text box
+
+        #This is when you have to close the form after getting values
+            $eventHandler = [System.EventHandler]{
+            $objTextBox0.Text;
+            $MaskedTextBox1.Text;
+            $objform.Close();};
+                $button.Add_Click($eventHandler) ;
+
+        #Add controls to the text box
+            $objform.Controls.Add($button);
+            $objForm.Controls.Add($cButton);
+            $objForm.Controls.Add($objLabel);
+            $objform.Controls.Add($objLabel0);
+            $objform.Controls.Add($objLabel1);
+            $objform.Controls.Add($objTextBox0);
+            $objform.Controls.Add($MaskedTextBox1);
+            $ret = $objform.ShowDialog();
+
+        # Ensures the form opens at the front of the topmost window on the desktop
+            $objForm.Topmost = $True  
+
+            #return values
+            return $objTextBox0.Text, $MaskedTextBox1.Text
+            <#$return#>
+
+        } #End PCLEmail
+        function Add-DistGrpMbr {
+        [void][System.Reflection.Assembly]::LoadWithPartialName( “System.Windows.Forms”)  #Load Assembly for creating form & DistGrpMbrButton
+        [void][System.Reflection.Assembly]::LoadWithPartialName( “Microsoft.VisualBasic”) #Load Assembly for creating form & DistGrpMbrButton
+
+        #Define the form size & placement
+            $DistGrpMbrForm = New-Object System.Windows.Forms.Form                      # Makes a blank form Window by calling "System.Windows.Forms.Form"
+            $DistGrpMbrForm.Text = "Adding User to Distribution Group"                  # Window Title
+            $DistGrpMbrForm.Size = New-Object System.Drawing.Size(440,100)              # Size of the form in pixels (Width,Height)
+            $DistGrpMbrForm.StartPosition = "CenterScreen"                              # Displays from in the centre of the screen
+            $DistGrpMbrForm.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen;
+
+        #Add[AutoSizing]
+            $DistGrpMbrForm.AutoSize = $True
+            $DistGrpMbrForm.AutoSizeMode = "GrowAndShrink" #GrowAndShrink,GrowOnly
+
+        # New User Form Label
+            $DistGrpMbrLabel = New-Object System.Windows.Forms.Label                                             # Adds a label
+            $DistGrpMbrLabel.Location = New-Object System.Drawing.Size(10,10)                                    # Location of the label (left,top)
+            $DistGrpMbrLabel.Size = New-Object System.Drawing.Size(200,20)                                       # Label size (width,height)
+            $DistGrpMbrLabel.Text = "Add User to Distribution Group:"                                            # Label text
+            $DistGrpMbrFont = New-Object System.Drawing.Font("Times New Roman",10,[System.Drawing.FontStyle]::Bold) #FontStyles:Regular,Bold,Italic,Underline,Strikeout
+            $DistGrpMbrLabel.Font = $DistGrpMbrFont
+       
+        # Lic
+            $DistGrpMbrLabel0 = New-Object System.Windows.Forms.Label;
+            $DistGrpMbrLabel0.Location = New-Object System.Drawing.Size(10,40)           # Location of the label (left,top)
+            $DistGrpMbrLabel0.Size = New-Object System.Drawing.Size(215,20)              # Label size (width,height)
+            $DistGrpMbrLabel0.Text = "Enter the Name of the Distribution Group:"         # Label text
+            $DistGrpMbrTextBox0 = New-Object System.Windows.Forms.TextBox;
+            $DistGrpMbrTextBox0 = New-Object System.Windows.Forms.TextBox                # Adds a textbox
+            $DistGrpMbrTextBox0.Location = New-Object System.Drawing.Size(230,35)        # Location of the texbox (left,top)
+            $DistGrpMbrTextBox0.Size = New-Object System.Drawing.Size(260,20)            # textbox Size (width,height) 
+        # UPN
+            $DistGrpMbrLabel1 = New-Object System.Windows.Forms.Label;
+            $DistGrpMbrLabel1.Location = New-Object System.Drawing.Size(10,60)           # Location of the label (left,top)
+            $DistGrpMbrLabel1.Size = New-Object System.Drawing.Size(130,40)              # Label size (width,height)
+            $DistGrpMbrLabel1.Text = "Enter the Email Address of the User to Add:"                              # Label text
+            $DistGrpMbrTextBox1 = New-Object System.Windows.Forms.TextBox;
+            $DistGrpMbrTextBox1 = New-Object System.Windows.Forms.TextBox                # Adds a textbox
+            $DistGrpMbrTextBox1.Location = New-Object System.Drawing.Size(230,65)        # Location of the texbox (left,top)
+            $DistGrpMbrTextBox1.Size = New-Object System.Drawing.Size(260,20)            # textbox Size (width,height) 
+
+        #define OK DistGrpMbrButton
+            $DistGrpMbrButton = New-Object System.Windows.Forms.Button                   # Adds a DistGrpMbrButton
+            $DistGrpMbrButton.Location = New-Object System.Drawing.Size(140,90)          # Location for the DistGrpMbrButton from (left,top)
+            $DistGrpMbrButton.Size = New-Object System.Drawing.Size(75,23)               # Size of the DistGrpMbrButton (width,height)
+            $DistGrpMbrButton.Text = "OK"                                                # Text to display on the DistGrpMbrButton
+        # Adds a CANCEL DistGrpMbrButton to the form
+            $cDistGrpMbrButton = New-Object System.Windows.Forms.Button               # Adds a DistGrpMbrButton
+            $cDistGrpMbrButton.Location = New-Object System.Drawing.Size(225,90)     # Location for the DistGrpMbrButton from (left,top)
+            $cDistGrpMbrButton.Size = New-Object System.Drawing.Size(75,23)           # Size of the DistGrpMbrButton (width,height)
+            $cDistGrpMbrButton.Text = "Cancel"                                        # Text to display on the DistGrpMbrButton
+            $cDistGrpMbrButton.Add_Click({$DistGrpMbrForm.Close()})                          # Captures the data entered into the text box
+    
+        # Configures the form so we can use the Enter key instead of OK and the ESC key instead of cancel
+            $DistGrpMbrForm.KeyPreview = $True                                          # Intercepts keystrokes
+            $DistGrpMbrForm.Add_KeyDown({if ($_.KeyCode -eq "Enter")                    # Specifies the Enter key
+                {$Return1=$DistGrpMbrTextBox0.Text,$DistGrpMbrTextBox1.text;$DistGrpMbrForm.Close()}})                         # Captures the data entered into the text box
+            $DistGrpMbrForm.Add_KeyDown({if ($_.KeyCode -eq "Escape")                   # Specifies the Esc key
+                {$DistGrpMbrForm.Close()}})                                             # Closes the box without argument 
+    
+        #This is when you have to close the form after getting values
+            $eventHandler = [System.EventHandler]{
+            $DistGrpMbrTextBox0.Text;
+            $DistGrpMbrTextBox1.Text;
+            $DistGrpMbrForm.Close();};
+                $DistGrpMbrButton.Add_Click($eventHandler) ;
+
+        #Add controls to the text box
+            $DistGrpMbrForm.Controls.Add($DistGrpMbrButton);
+            $DistGrpMbrForm.Controls.Add($cDistGrpMbrButton);
+            $DistGrpMbrForm.Controls.Add($DistGrpMbrLabel);
+            $DistGrpMbrForm.Controls.Add($DistGrpMbrLabel0);
+            $DistGrpMbrForm.Controls.Add($DistGrpMbrLabel1);
+            $DistGrpMbrForm.Controls.Add($DistGrpMbrTextBox0);
+            $DistGrpMbrForm.Controls.Add($DistGrpMbrTextBox1);
+
+            $ret = $DistGrpMbrForm.ShowDialog();
+
+    # Ensures the form opens at the front of the topmost window on the desktop
+            $DistGrpMbrForm.Topmost = $True  
+
+        #return values
+        return $DistGrpMbrTextBox0.Text, $DistGrpMbrTextBox1.Text
+
+    } #End Add-DistGrpMbr
+        function Add-DLMemb($DL) {                 
+         if ($DL) {
+           # Grant the access
+           Write-Host -ForegroundColor Yellow "....Giving the user access to the DL"
+           ""
+           Add-DistributionGroupMember -Identity "$DL" -Member "$UPN" -BypassSecurityGroupManagerCheck
+        
+           #End the session
+           ""
+           Write-Host -ForegroundColor Yellow "The user has been created"
+                                ""
+           } else {
+             ""
+             Write-Host -ForegroundColor Yellow "No DL selected."
+             ""
+             Write-Host -ForegroundColor Yellow "The user has been created"
+             ""
+             Write-Host -ForegroundColor Yellow "Exiting."
+             } 
+        } #End Add-DLMemb
+        function Prompt-DL {
+                    #Prompt for another adding?
+                    $title = "Distribution List Management"
+	                $message = "Would you like to add the user to another distribution group?		
+                    "
+
+	                $complete1 = New-Object System.Management.Automation.Host.ChoiceDescription "&No","Close and Exit"
+                    $another1 = New-Object System.Management.Automation.Host.ChoiceDescription "&Yes","Add another!!!"
+
+	                $options = [System.Management.Automation.Host.ChoiceDescription[]]($complete1, $another1)
+
+	                $result = $host.ui.PromptForChoice($title, $message, $options, 1) 
+
+	                switch ($result) {
+                        0 {
+                            Write-Host -ForegroundColor Yellow "Done"
+                            $DLyes=1
+                            exit
+                        }
+                        1 {
+                            Write-Host -ForegroundColor Yellow "Adding Another"
+                            $DLyes=0
+    	                }
+                    } #End Switch
+        } #End Prompt-DL
+        function Get-MSOLTennantDetails {
+    Write-Host -ForegroundColor Green "#************************************************
+    # MSOLTenantDetails.ps1
+    # Version 1.0
+    # Date: 1-30-2013
+    # Author: Tspring
+    # Description: Script for taking an O365 user credential and
+    # determining the verified and unverified domains, what SKU is being
+    # used and what licensing the user has and returning that data.
+    #************************************************"
+    ""
+
+    Write-Host -ForegroundColor Yellow "Getting MSOL Tennant Details"
+    Trap [Exception]
+		    {# Handle exception and then continue with function and script.
+		     $Script:ExceptionMessage = $_
+		     Write-host "[info]:An exception occurred." -shortformat
+		     Write-host "[info]: Exception.Message $ExceptionMessage."
+		     Write-host $_
+		     $Error.Clear()
+		     continue
+		    }
+	
+    #"Master" PSObject for returned data.
+    $MSOLTenantDetails = New-Object PSObject
+
+    #get all mso domains
+    $Domains = Get-MsolDomain
+    $DomCount = $Domains.Count
+
+    $TentantDetails = New-Object PSObject
+
+    #Members are User Name, User UPN, IsTenantAdmin, and each domain will have properties of 
+    # Authentication, Capabilities, IsDefault, IsInitial, Name, RootDomain and Status. 
+    #Add password policy setting info
+    #####################################
+    #####################################
+    $UserInfo = Get-MsolUser -UserPrincipalName $Cred.UserName
+    $MSOLAccountSKU = Get-MsolAccountSku
+    $TenantId = $MSOLAccountSKU.AccountObjectId
+    $AccountName = $MSOLAccountSKU.AccountName
+
+
+    #Determine user role memberships.
+    ####################################
+    $TenantId = $MSOLAccountSKU.AccountObjectId
+    $UserName = $Cred.UserName
+    $IsPartnerTier1Admin = $false
+    $IsTenantAdmin = $false
+    $IsHelpDeskMember = $false
+    $IsDirectoryReader = $false
+    $IsBillingMember = $false
+    $IsPartnerTier2Member = $false
+    $IsServiceSupportMember = $false
+    $IsUserAccountMember = $false
+
+    #Get roles and role guids, then get role members.
+    $MSOLRole = Get-MsolRole -ErrorAction SilentlyContinue
+
+    if ($MSOLRole -ne $null)
+	    {$PartnerTier1GUID = $MSOLRole[0].ObjectId.Guid
+         $AdminRoleGUID = $MSOLRole[1].ObjectId.Guid
+         $HelpDeskGUID = $MSOLRole[2].ObjectId.Guid
+	     $DirectoryReaderGUID = $MSOLRole[3].ObjectId.Guid
+	     $BillingAdminGUID = $MSOLRole[4].ObjectId.Guid
+	     $PartnerTier2GUID = $MSOLRole[5].ObjectId.Guid
+	     $ServiceSupportAdminGUID = $MSOLRole[6].ObjectId.Guid
+	     $UserAccountAdminGUID = $MSOLRole[7].ObjectId.Guid
+	     $PartnerTier1RoleMembers = Get-MsolRoleMember -RoleObjectId $PartnerTier1GUID
+	     $AdminRoleMembers = Get-MsolRoleMember -RoleObjectId $AdminRoleGUID
+	     $HelpDeskRoleMembers = Get-MsolRoleMember -RoleObjectId $HelpDeskGUID
+	     $DirectoryReaderRoleMembers = Get-MsolRoleMember -RoleObjectId $DirectoryReaderGUID
+	     $BillingRoleMembers = Get-MsolRoleMember -RoleObjectId $BillingAdminGUID
+	     $PartnerTier2RoleMembers = Get-MsolRoleMember -RoleObjectId $PartnerTier2GUID
+	     $ServiceSupportRoleMembers = Get-MsolRoleMember -RoleObjectId $ServiceSupportAdminGUID
+	     $UserAccountRoleMembers = Get-MsolRoleMember -RoleObjectId $UserAccountAdminGUID
+         #Compare member lists to see if the current user is a member. 
+	    ForEach ($PartnerTier1RoleMember in $PartnerTier1RoleMembers)
+		    { if ($PartnerTier1RoleMember.EmailAddress -match $UserInfo.UserPrincipalName)
+			    { $IsPartnerTier1Admin = $True}
+		    }
+	    ForEach ($AdminRoleMember in $AdminroleMembers)
+		    { if ($AdminRoleMember.EmailAddress -match $UserInfo.UserPrincipalName)
+			    { $IsTenantAdmin = $True}
+		    }
+	    ForEach ($HelpDeskRoleMember in $HelpDeskRoleMembers)
+		    { if ($HelpDeskRoleMember.EmailAddress -match $UserInfo.UserPrincipalName)
+			    { $IsHelpDeskMember = $True}
+		    }
+	    ForEach ($DirectoryReaderRoleMember in $DirectoryReaderRoleMembers)
+		    { if ($DirectoryReaderRoleMember.EmailAddress -match $UserInfo.UserPrincipalName)
+			    { $IsDirectoryReader = $True}
+		    }
+	    ForEach ($BillingRoleMember in $BillingRoleMembers)
+		    { if ($BillingRoleMember.EmailAddress -match $UserInfo.UserPrincipalName)
+			    { $IsBillingMember = $True}
+		    }
+	    ForEach ($PartnerTier2RoleMember in $PartnerTier2RoleMembers)
+		    { if ($PartnerTier2RoleMember.EmailAddress -match $UserInfo.UserPrincipalName)
+			    { $IsPartnerTier2Member = $True}
+		    }
+	    ForEach ($ServiceSupportRoleMember in $ServiceSupportRoleMembers)
+		    { if ($ServiceSupportRoleMember.EmailAddress -match $UserInfo.UserPrincipalName)
+			    { $IsServiceSupportMember = $True}
+		    }
+	    ForEach ($UserAccountRoleMember in $UserAccountRoleMembers)
+		    { if ($UserAccountRoleMember.EmailAddress -match $UserInfo.UserPrincipalName)
+			    { $IsUserAccountMember = $True}
+		    }
+	    }
+	
+    $LicensePack = $UserInfo.Licenses[0].AccountSkuId
+
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "DisplayName" -value $UserInfo.DisplayName
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "UserPrincipalName" -value $UserInfo.UserPrincipalName
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "LastDirSyncTime" -value $UserInfo.LastDirSyncTime
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "ImmutableID" -value $UserInfo.ImmutableId
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "Errors" -value $UserInfo.Errors
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "IsBlackBerryUser" -value $UserInfo.IsBlackberryUser
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "LiveID" -value $UserInfo.LiveId
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "ObjectID" -value $UserInfo.ObjectId
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "ValidationStatus" -value $UserInfo.ValidationStatus
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "IsLicensed" -value $UserInfo.IsLicensed
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "LicenseReconciliationNeeded" -value $UserInfo.LicenseReconciliationNeeded
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "LicensePack" -value $UserInfo.Licenses[0].AccountSkuId
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "IsPartnerTier1Admin" -value $IsPartnerTier1Admin
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "IsTenantAdmin" -value $IsTenantAdmin
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "IsHelpDeskMember" -value $IsHelpDeskMember
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "IsDirectoryReader" -value $IsDirectoryReader
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "IsBillingMember" -value $IsBillingMember
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "IsPartnerTier2Member" -value $IsPartnerTier2Member
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "IsServiceSupportMemer" -value $IsServiceSupportMember
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "IsUserAccountMember" -value $IsUserAccountMember
+    add-member -inputobject $TentantDetails -membertype noteproperty -name "DomainCount" -value $DomCount
+
+
+    #Add user details to the "master" PSObject.
+    Add-Member -InputObject $MSOLTenantDetails -MemberType NoteProperty -Name "TenantDetails" -Value $TentantDetails
+
+    #Email addresses for the user. Since they are multi valued and we don't know how 
+    #many there will be we'll place them into "child" PSObjects as well. One fpr alternate
+    #email addresses and one for ProxyEmail addresses.
+    ########################################
+    ########################################
+    $UserAlternateEmails = New-Object PSObject
+    $AlternateEmailAddresses = $UserInfo.AlternateEmailAddresses
+    ForEach ($AlternateEmailAddress in $AlternateEmailAddresses)
+	    {
+	     add-member -inputobject $UserAlternateEmails -membertype noteproperty -name $AlternateEmailAddress -value $AlternateEmailAddress
+	    }
+
+    $UserProxyAddresses = New-Object PSObject
+    $ProxyAddresses = $UserInfo.ProxyAddresses
+    ForEach ($ProxyAddress in $ProxyAddresses)
+	    {
+	     add-member -inputobject $UserProxyAddresses -membertype noteproperty -name $ProxyAddress -value $ProxyAddress
+	    }
+
+    #Add email addresses to the "master" PSObject.
+    Add-Member -InputObject $MSOLTenantDetails -MemberType NoteProperty -Name "AlternateEmailAddresses" -Value $UserAlternateEmails
+    Add-Member -InputObject $MSOLTenantDetails -MemberType NoteProperty -Name "ProxyAddresses" -Value $ProxyAddresses
+
+    #Licensing: add each License by ServiceStatus which the License pack allows for and their status.
+    ########################################
+    ########################################
+    $Licenses = $UserInfo.Licenses[0].ServiceStatus
+    if ($Licenses -ne $null)
+	    {$LicenseCounter = 0
+	     ForEach ($License in $Licenses)
+		    {
+	 	     $LicenseObject = New-Object PSObject
+	 	     add-member -inputobject $LicenseObject -membertype noteproperty -name "LicenseServicePlanName" -value  $License.ServicePlan.ServiceName
+	 	     add-member -inputobject $LicenseObject -membertype noteproperty -name  "LicenseServiceProvStatus" -value $License.ProvisioningStatus
+	 	     add-member -inputobject $LicenseObject -membertype noteproperty -name "LicenseServicePlanId" -value $License.ServicePlan.ServicePlanID
+	 	     $LicenseCounter++
+			    switch ($License.ServicePlan.ServicePlanId)
+				    {
+				    'bea4c11e-220a-4e6d-8eb8-8ea15d019f90'
+					    {$LicenseNameString = "RMS_S_ENTERPRISE (Rights Management Service)"}
+				    '43de0ff5-c92c-492b-9116-175376d08c38'
+					    {$LicenseNameString =  "OFFICESUBSCRIPTION (Office Professional Plus)"}
+				    '0feaeb32-d00e-4d66-bd5a-43b5b83db82c'
+					    {$LicenseNameString =  "MCOSTANDARD (Lync Online)"}
+				    'e95bec33-7c88-4a70-8e19-b10bd9d0c014'
+					    {$LicenseNameString =  "SHAREPOINTWAC (Microsoft Office Web Apps)"}
+				    '5dbe027f-2339-4123-9542-606e4d348a72'
+					    {$LicenseNameString =  "SHAREPOINTENTERPRISE (SharePoint Online)"}
+				    'efb87545-963c-4e0d-99df-69c6916d9eb0'
+					    {$LicenseNameString =  "EXCHANGE_S_ENTERPRISE (Exchange Online)"}
+				    }	
+		
+	 	     add-member -inputobject $MSOLTenantDetails -membertype noteproperty -name $LicenseNameString -value $LicenseObject
+		    $LicenseNameString = $null
+		    }
+	    }
+
+    #Domain Info
+    ########################################
+    ########################################
+    [Array]$Domains = Get-MsolDomain
+    ForEach ($Domain in $Domains)
+	    {
+	     $DomainObject = New-Object PSObject
+	     add-member -inputobject $DomainObject -membertype noteproperty -name  "Domain Name" -value $Domain.Name
+	     add-member -inputobject $DomainObject -membertype noteproperty -name  "DomainAuthentication" -value $Domain.Authentication
+	     add-member -inputobject $DomainObject -membertype noteproperty -name  "DomainCapabilities" -value $Domain.Capabilities
+	     add-member -inputobject $DomainObject -membertype noteproperty -name  "DomainIsDefault" -value $Domain.IsDefault 
+	     add-member -inputobject $DomainObject -membertype noteproperty -name  "DomainIsInitial" -value $Domain.IsInitial 
+	     add-member -inputobject $DomainObject -membertype noteproperty -name  "DomainRootDomain" -value $Domain.RootDomain
+	     add-member -inputobject $DomainObject -membertype noteproperty -name  "DomainStatus" -value $Domain.Status
+	
+	     #Add this PSObject to the "master" one.
+	     add-member -inputobject $MSOLTenantDetails -membertype noteproperty -name  $Domain.Name -value $DomainObject
+	     $DomainObject = $null
+	     }
+
+	    $MSOLTenantDetails | FL
+    } #End Get-MSOLTennantDetails
+
+        Write-Host -ForegroundColor Yellow "Defined[UserForm]"
+        Write-Host -ForegroundColor Yellow "Defined[PCLEmail]"
+        Write-Host -ForegroundColor Yellow "Defined[Add-DistGrpMbr]"
+        ""
+        #End[ListFunctions]
+
+    #########################
+    #########################
+    "-------------------"
+    Write-Host -ForegroundColor Green "SECTION 3: Begin[SelectCompany]"
+    "-------------------"
+    Write-Host -ForegroundColor Yellow "PromptingWindow[SelectCompany]"
+    ""
+    #Begin[SelectCompany]
+    $title = "Select the company to manage"
+    $message = "Please select the company to manage
+
+    Company currently selected is: $company $choice"
+
+    $hend = New-Object System.Management.Automation.Host.ChoiceDescription "&Hend","Enter the Hendersons Relish management scripts"          #0
+    $ywca = New-Object System.Management.Automation.Host.ChoiceDescription "&YWCA","Enter the Sheffield YWCA management scripts"             #1
+    $all = New-Object System.Management.Automation.Host.ChoiceDescription "&N/A","Already Entered Credentials"                               #2
+    $canc = New-Object System.Management.Automation.Host.ChoiceDescription "&Cancel","Cancel and exit the process"                           #3
+
+    $options = [System.Management.Automation.Host.ChoiceDescription[]]($hend, $ywca, $all, $canc)
+
+    $result = $host.ui.PromptForChoice($title, $message, $options, 3)
+
+                                                                                                                                                                            switch ($result) {
+    0 <#hend#> {
+    Write-Host -ForegroundColor Yellow "User Selected 0. Hendersons Relish"
+    ">"
+    ">"
+    ">"
+        $credential = Get-Credential
+        $credential.Password | ConvertFrom-SecureString | Set-Content $credpath
+            $pass=get-content $credpath | convertto-securestring
+            $cred=new-object -typename System.Management.Automation.PSCredential -argumentlist "365admin@hendersonsrelish.com",$pass
+            $company="Hendersons Relish"
+                break
+    } #End 0
+    1 <#ywca#> {
+    Write-Host -ForegroundColor Yellow "User Selected 1. Sheffield YWCA"
+    ">"
+    ">"
+    ">"
+        $credential = Get-Credential
+        $credential.Password | ConvertFrom-SecureString | Set-Content $credpath
+            $pass=get-content $credpath | convertto-securestring
+            $cred=new-object -typename System.Management.Automation.PSCredential -argumentlist "365admin@sheffieldywca.com",$pass
+            $company="Sheffield YWCA"
+                break
+    } #End 1
+    2 <#all#> {
+    Write-Host -ForegroundColor Yellow "User Selected 2. Already Entered Credentials"
+    ""
+    Write-Host -ForegroundColor Cyan "Company selected is:" $Company
+    $NoComp=1
+        if ($credential -eq $null) {
+            Write-Host -ForegroundColor Red "ERROR: You selected N/A and the credentials are not stored, please re-run the script and select a company to manage."
+            $credential=1
+            }
+    ""
+    } #End 2
+    3 <#can#> {
+    Write-Host -ForegroundColor Red "User Selected 3. Cancel"
+        Write-Host -ForegroundColor Red "Action Cancelled"
+        Write-Host -ForegroundColor Red "Ending Script"
+        Write-Host -ForegroundColor Red "Script is sad that it didn't get a run"
+        Exit
+    } #End 3
+    } #End Switch
+
+    #Loop to catch errors
+                if ($company -eq $null) {
+        $company="No Company Selected"
+        }
+
+                        if ($credential -eq $null) {
+        Write-Host -ForegroundColor Red "ERROR: You didn't enter anything."
+            Write-Host -ForegroundColor Red "Script is sad and has to close now."
+                exit
+      } elseif ($credential -eq 1) {
+                Write-Host -ForegroundColor Red "Script is sad and has to close now."
+                    $credential=$null
+                        exit
+                                      } else {
+            Write-Host -ForegroundColor Yellow "Checking [Credentials]"
+                Write-Host -ForegroundColor Yellow "   ...OK"
+                Write-Host -ForegroundColor Yellow "Complete [SelectCompany]"
+                Write-Host -ForegroundColor Yellow "Credentials Stored Successfully"
+                Write-Host -ForegroundColor Yellow "Moving to [Section 4]"
+                ""
+    }
+
+    #Connect Service and Show Tennant Details
+    Write-Host -ForegroundColor Yellow "Connecting to MSOL Services and Fetching Tennant Details..."
+        Connect-MsolService -credential $cred
+            Get-MSOLTennantDetails
+                pause
+
+    #End[SelectCompany]
+
+    #########################
+    #########################
+    "-------------------"
+    Write-Host -ForegroundColor Green "SECTION 4: Begin[ConnectionMethod]"
+    "-------------------"
+    #Give detail about which selectio
+    Write-Host -ForegroundColor Yellow "Currently Managing:" $Company
+    ""
+        Write-Host -ForegroundColor Cyan "MSOL for:
+        0. Creating A New User
+        1. Remove A User from MSOL
+        2. Manually Purge the Recycle Bin
+        3. Create a Bulk of new MSOL Users
+        4. Assign Licences to a User
+        5. Get a List of Licences Assigned to a User
+        6. Get MSOL Tennant Details
+        7. Set Passwords to Never Expire
+        8. Reset a 365 Password
+        9. Bulk Change UPN for All Users
+        10. Restore a Deleted User"
+        ""
+        Write-Host -ForegroundColor Cyan "EXCHANGE for:
+        0. Calendar Permission Management
+        1. Adding a Custom Attribute
+        2. Distribution Group Management
+        3. Mailbox Permission Management
+        4. Modify the Safe Senders List
+        5. Adding Send As Permissions
+        6. Adding an Alias to a Mailbox
+        7. Changing the Primary SMTP Address"
+    ""
+
+        $conEOL = null
+        $conMSOL = null
+
+    #Begin[ConnectionMethod]
+    $title = "Connection Method"
+    $message = "Please select the type of connection to make:
+
+    The company you are currently managing is: $Company
+
+    If this is not correct, please cancel and rerun the script"
+
+    $conMSOL = New-Object System.Management.Automation.Host.ChoiceDescription "&MSOL","Connect to Microsoft Online Services (MSOL)"
+    $conEOL = New-Object System.Management.Automation.Host.ChoiceDescription "&Exchange","Connect to Exchange Online"
+    $can = New-Object System.Management.Automation.Host.ChoiceDescription "&cancel","Cancel and Exit"
+
+    $options = [System.Management.Automation.Host.ChoiceDescription[]]($conMSOL, $conEOL, $can)
+
+    $result = $host.ui.PromptForChoice($title, $message, $options, 2)
+
+    switch ($result) {
+        0 <#MSOL#> {
+		        Write-Host -ForegroundColor Cyan "Already connected to MSOL, continuing...."
+                $sw = 0
+                $ServiceName="MSOL Services"
+                ""
+                    Write-Host -ForegroundColor Cyan "MSOL Selected"
+		                break
+        } #End 0
+        1 <#EXCH#> {
+	    Write-Host -ForegroundColor Yellow "Connecting to Exchange Services"
+            ""
+        Write-Host -ForegroundColor Green "Running Cmdlet: ... "
+        Write-Host -ForegroundColor Cyan "`$Session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.outlook.com/powershell/ -Credential `$cred -Authentication Basic -AllowRedirection"	
+        $Session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.outlook.com/powershell/ -Credential $cred -Authentication Basic -AllowRedirection
+		        Import-PSSession $session
+		            $sw = 1
+                    $ServiceName="EXCHANGE Services"
+                    ""
+                        Write-Host -ForegroundColor Cyan "Exchange Selected"
+		                    break
+        } #End 1
+        2 <#CANC#> {
+            Write-Host -ForegroundColor Red "Action Cancelled"
+                Write-Host -ForegroundColor Red "Ending Script"
+                Write-Host -ForegroundColor Red "Script is sad that it didn't get a run"
+                    exit
+		            break
+        } #End 2
+    } #End Switch
+
+    Write-Host -ForegroundColor Yellow "Complete  [ConnectionMethod]"
+    Write-Host -ForegroundColor Yellow "Moving to [Section5]"
+    ""
+    #End[ConnectionMethod]
+
+    #########################
+    #########################
+    "-------------------"
+    Write-Host -ForegroundColor Green "SECTION 5: Begin[ScriptManagementShell]" 
+    Write-Host -ForegroundColor Cyan $ServiceName
+    "-------------------"
+    #Begin[ScriptManagementShell]
+    Write-Host -ForegroundColor Yellow "1. What would you like to do?"
+    ""
+    ""
+    if ($sw -eq 0) <#MSOL#> {
+        # MSOL Script Selection
+        $title = "Task Selection"
+        $message = "What would you like to do"
+
+        $newMSOL = New-Object System.Management.Automation.Host.ChoiceDescription "&New User","Create a new MSOL user"                       #0
+        $delMSOL = New-Object System.Management.Automation.Host.ChoiceDescription "&Delete User","Remove a user from MSOL"                   #1
+        $manPUR = New-Object System.Management.Automation.Host.ChoiceDescription "&Purge Bin","Manually Purge the MSOL Recycle Bin"          #2
+        $bulkADD = New-Object System.Management.Automation.Host.ChoiceDescription "&Bulk Add User","Create a bulk of new MSOL users"         #3
+        $licADD = New-Object System.Management.Automation.Host.ChoiceDescription "&Add Licence","Assign Licences to a user"                  #4
+        $licCHK = New-Object System.Management.Automation.Host.ChoiceDescription "&List Licences","Get a list of licences assigned to users" #5
+        $tenCHK = New-Object System.Management.Automation.Host.ChoiceDescription "&Tennant","Get MSOL tennant details"                       #6
+        $passEXP = New-Object System.Management.Automation.Host.ChoiceDescription "&Password Never Expire","Set passwords to never expire"   #7
+        $passRES = New-Object System.Management.Automation.Host.ChoiceDescription "&Reset Password","Reset a 365 Password"                   #8
+        $upnCHN = New-Object System.Management.Automation.Host.ChoiceDescription "&Change UPN","Bulk change the UPN for all users"           #9
+        $ResUsr = New-Object System.Management.Automation.Host.ChoiceDescription "&Restore User","Restore a deleted 365 user"                #10
+        $can = New-Object System.Management.Automation.Host.ChoiceDescription "&cancel","Cancel and Exit"                                    #11
+
+        $options = [System.Management.Automation.Host.ChoiceDescription[]]($newMSOL, $delMSOL, $manPUR, $bulkADD, $licAdd, $licCHK, $tenCHK, $passEXP, $passRes, $upnCHN, $ResUsr, $can)
+
+        $result = $host.ui.PromptForChoice($title, $message, $options, 11)
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    switch ($result) {
+    0 <#Create a new MSOL user#> {
+      do {      
+            Write-Host -ForegroundColor Yellow "User Selected 0. NEW MSOL USER"
+           
+            #Null the loop variable
+            $n=""
+
+            #Establish Remote PowerShell Session to Exchange Online
+            Write-Host -ForegroundColor Yellow "Connecting to MSOL Services..."
+            
+                #Get the list of available licences
+                ""
+                Write-Host -ForegroundColor Yellow "If the 'ActiveUnits' column is equal to the 'ConsumedUnits' then a licence must be added via the web portal before proceeding."
+                Write-Host -ForegroundColor Yellow "If the 'ActiveUnits' column is more than the 'ConsumedUnits' then there is a spare licence and you can continue."
+                ""
+                    #Get account SKU details
+                    Write-Host -ForegroundColor Cyan "Get-MsolAccountSku | ft -AutoSize"
+                    Get-MsolAccountSku | ft -AutoSize
+                    ""
+                    #Set variables
+                    $AccountSkuId=Read-Host "Please Enter the relevant AccountSkuId above [Stored in Variable: `$AccountSkuId]"
+                    ""
+                    Write-Host -ForegroundColor Dark Yellow "Setting variable `$LicCheck"
+                    Write-Host -ForegroundColor Cyan "Get-MsolAccountSku | Where-Object { $_.AccountSkuId -eq '`$AccountSkuId' -and $_.ActiveUnits -gt $_.ConsumedUnits }"
+
+                    $LicCheck=Get-MsolAccountSku | Where-Object { $_.AccountSkuId -eq "$AccountSkuId" -and $_.ActiveUnits -gt $_.ConsumedUnits }
+            
+            #Loop to point admin to the web portal if licence count is insufficient
+            if (Get-MsolAccountSku | Where-Object { $_.AccountSkuId -eq "$AccountSkuId" -and $_.ActiveUnits -eq $_.ConsumedUnits }) {
+              do {
+              $LicCheck=Get-MsolAccountSku | Where-Object { $_.AccountSkuId -eq "$AccountSkuId" -and $_.ActiveUnits -gt $_.ConsumedUnits }
+              Write-Host -ForegroundColor Red "[1] NO SPARE LICENCES - Please add more using the web admin portal."
+              Write-Host -ForegroundColor DarkCyan "    Redirecting to the web portal https://portal.office.com"
+              ""
+              Write-Host -ForegroundColor Yellow "        Launching Internet Explorer..."
+              Start-Process -FilePath "C:\Program Files\Internet Explorer\iexplore.exe" "https://portal.office.com/"
+              ""
+              Write-Host -ForegroundColor Yellow "And just pausing to allow you time to add the licences in the portal"
+              Write-Host -ForegroundColor Yellow "Once you have added the licences..."
+              pause
+              Write-Host -ForegroundColor Yellow "Checking again...."
+                    #Begin[YesNo]
+                    $title = "YesNo"
+                    $message = "Have you been into the portal and added a licence?"
+
+                    $yes = New-Object System.Management.Automation.Host.ChoiceDescription "&Yes","Yes I have, Definitely"
+                    $no = New-Object System.Management.Automation.Host.ChoiceDescription "&No","No, Not Yet."
+
+                    $options = [System.Management.Automation.Host.ChoiceDescription[]]($yes, $no)
+
+                    $result = $host.ui.PromptForChoice($title, $message, $options, 1)
+
+                    switch ($result) {
+                        0 <#Yes#> {
+	                           $LicCheck = $true
+                        } #End 0
+                        1 <#No#> {
+                                $LicCheck = $False
+                        }
+                    } #End Switch
+              } until ($LicCheck -eq $true)
+            }
+                        #Just check again to ensure
+                    ""
+                    ""
+                    Write-Host -ForegroundColor Yellow "Checking again...."
+                    ""
+                    if ($LicCheck -eq $False) {
+                        Get-MsolAccountSku | ft -AutoSize
+                        } else {
+                        ""
+                        Write-Host -ForegroundColor Yellow "There are spare licences"
+                        ""
+                        ""
+                    }
+                    Write-Host -ForegroundColor Yellow "[Enter Details Into the UserForm]"
+                    Write-Host -ForegroundColor Cyan "    NOTE: Form may open behind main Poweshell window!!"
+                    Write-Host -ForegroundColor Cyan "    NOTE: UserPrincipalName is usually the same as the email address but may be different"
+                    Write-Host -ForegroundColor Cyan "    NOTE: You can leave a field blank unless marked with an asterisk (*)"
+                #Gather info to create the user from the UserForm function
+                    $return=UserForm
+                    $Lic = $AccountSkuId
+                    $UPN = $return[1]
+                    $DisplayName = $return[2]
+                    $FirstName = $return[3]
+                    $Surname = $return[4]
+                    $Pass = $return[5]
+                    $Dept = $return[6]
+                    $Mob = $return[7]
+                    $Phone = $return[8]
+                    $Office = $return[9]
+    
+                #Create the user
+                    New-MsolUser –UserPrincipalName $UPN –DisplayName $DisplayName -FirstName $FirstName –LastName $Surname -Department $Dept -Office $Office -MobilePhone $Mob -PhoneNumber $Phone –Password $Pass -UsageLocation GB -LicenseAssignment $Lic -Verbose
+                    ""
+                    ""
+                    "------------------------"
+                    Write-Host -ForegroundColor Yellow "USER DETAILS"
+                    "-------------------------"
+                    Write-Host -ForegroundColor Cyan "Licence............"$Lic
+                    Write-Host -ForegroundColor Cyan "UserPrincipalName.."$UPN
+                    Write-Host -ForegroundColor Cyan "DisplayName........"$DisplayName
+                    Write-Host -ForegroundColor Cyan "FirstName.........."$FirstName
+                    Write-Host -ForegroundColor Cyan "Surname............"$Surname
+                    Write-Host -ForegroundColor Cyan "Password..........."$Pass
+                    Write-Host -ForegroundColor Cyan "Department........."$Dept
+                    Write-Host -ForegroundColor Cyan "MobileNumber......."$Mob
+                    Write-Host -ForegroundColor Cyan "OfficePhone........"$Phone
+                    Write-Host -ForegroundColor Cyan "OfficeLocation....."$Office
+
+                #Set password and set to never expire
+                    ""
+                    Write-Host -ForegroundColor Yellow "Setting the password to never expire..."
+                    Write-Host -ForegroundColor Yellow "Waiting...."
+                    Write-Host -ForegroundColor Yellow "Setting..."
+                    ""
+
+                Write-Host -ForegroundColor red "OH, DONT FORGET TO UPDATE THE HOSTING TAB"
+                    ""
+
+                    #Resetting the password
+                    Write-Host -ForegroundColor Yellow "Resetting the password for $Firstname"
+                    Write-Host -ForegroundColor Cyan "Set-MsolUserPassword -UserPrincipalName $UPN -NewPassword $Pass -ForceChangePassword `$false"
+
+                        Set-MsolUserPassword -UserPrincipalName $UPN -NewPassword $Pass -ForceChangePassword $false
+                        ""
+                        Write-Host -ForegroundColor Yellow "Done that."
+                        Write-Host -ForegroundColor Yellow "Now setting to never expire"
+                        ""
+                        Write-Host -ForegroundColor Cyan "Get-MsolUser | Set-MsolUser -PasswordNeverExpires `$true"
+                        Get-MsolUser | Set-MsolUser -PasswordNeverExpires $true
+                        ""
+                        Write-Host -ForegroundColor Yellow "Done that too."
+                        ""
+                        ""
+                        #Output the details to the console
+                            Write-Host -ForegroundColor Cyan "The email address is" $UPN
+                            Write-Host -ForegroundColor Cyan "The Password is" $pass
+                            ""
+               #Switching from MSOL
+               Write-Host -ForegroundColor Yellow "Switching to Office 365 from MSOL to set the regional mailbox configuration using 'Set-MailboxRegionalConfiguration'"
+
+               ""
+               Write-Host -ForegroundColor Yellow "Waiting...."
+
+                    #Connect the session to O365 to add the Regional Config
+                            $Session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.outlook.com/powershell/ -Credential $cred -Authentication Basic -AllowRedirection
+                            Import-PSSession $session
+
+                        #Set the Regional Language settings
+                            ""
+                            Write-Host -ForegroundColor Yellow "Running Cmdlet 'Set-MailboxRegionalConfiguration'"
+                            Write-Host -ForegroundColor Cyan "Set-MailboxRegionalConfiguration -identity $UPN -Language en-GB -DateFormat dd/MM/yyyy -TimeFormat HH:mm -TimeZone 'GMT Standard Time'"
+                            Set-MailboxRegionalConfiguration -identity $UPN -Language en-GB -DateFormat dd/MM/yyyy -TimeFormat HH:mm -TimeZone "GMT Standard Time"
+
+
+                # Loop adding the user to Distribution groups
+                do {
+                    #Add/Remove User Distribution Groups
+                    Write-Host -ForegroundColor Cyan "Get-DistributionGroup | ft DisplayName"
+                    Get-DistributionGroup | ft DisplayName
+                    ""
+                    #Specify the Group to amend
+                    $DL = read-host "Please enter the DisplayName of the Distribution Group name from the list above (Leave Blank if None)"
+                     ""
+
+                    #error catching
+                    if ($DL) {
+                    #Add the user to the group
+                    Write-Host -ForegroundColor Cyan "Add-DistributionGroupMember -Identity '$DL' -Member '$UPN' -BypassSecurityGroupManagerCheck"
+                    Add-DistributionGroupMember -Identity "$DL" -Member "$UPN" -BypassSecurityGroupManagerCheck
+                    $f=0
+                        #Prompt to Add another User?
+                        Write-Host -ForegroundColor Red "Type the response below to add the user to another group or exit the script"
+                        $resp=Read-Host "Add Another User? [Y/N]"
+
+                                #Set the variable based on the response
+                                if ($resp -eq "Y" -or "y" -or "yes") {
+                                    #Set the variable of $n to 0 and loop back
+                                    $g=0
+                                } else {
+                                    #Set the variable of $n to 1 and exit
+                                    $g=1
+                                }
+
+                                #message to the user
+                                if ($g -eq 0) {
+                                    ""
+                                    Write-Host -ForegroundColor Yellow "Going back to the start"
+                                    ""
+                                  } else {
+                                      #Exit the script with message
+                                        ""
+                                        Write-Host -ForegroundColor Red "Action Cancelled"
+                                        Write-Host -ForegroundColor Red "Ending Script"
+                                        Write-Host -ForegroundColor Red "I hope your new user enjoys 365!!"
+                                } #End If
+                      } else {
+                      Write-Host -ForegroundColor Red "No group selected."
+                      $f=1
+                    }
+
+                } while ($g -eq 0) #End Do While
+
+        
+        #Loop if no group selected
+        if ($f -eq 1) {
+                  #Exit the script with message
+                    ""
+                    Write-Host -ForegroundColor Red "Action Cancelled"
+                    Write-Host -ForegroundColor Red "Ending Script"
+                    Write-Host -ForegroundColor Red "I hope your new user enjoys 365!!"
+             } else {
+                #Prompt to Add another User?
+                Write-Host -ForegroundColor Red "Type the response below to add another user or exit the script"
+                $p=Read-Host "Add Another User? [Y/N]"
+
+                    #message to the user
+                    if ($p -eq "Y") {
+                        ""
+                        Write-Host -ForegroundColor Yellow "You typed $n"
+                        Write-Host -ForegroundColor Yellow "Lets add another user!!!"
+                        ""
+                        pause
+                      } else {
+                          #Exit the script with message
+                            ""
+                            Write-Host -ForegroundColor Red "You typed $n"
+                            Write-Host -ForegroundColor Red "Action Cancelled"
+                            Write-Host -ForegroundColor Red "Ending Script"
+                            Write-Host -ForegroundColor Red "I hope your new user enjoys 365!!"
+                    } #End If
+         }
+        } while ($p -eq "Y") #End Do While
+        
+        #Kill the switch
+        break
+
+     } #End 0
+    1 <#Remove a user from MSOL#> {
+    do {
+        Write-Host -ForegroundColor Yellow "User Selected 1. REMOVING A MSOL USER"
+
+        #Null the loop variable
+        $n=""
+
+            #Get the user list
+                Write-Host -ForegroundColor Cyan "Get-MsolUser | Sort UserPrincipalName"
+                Get-MsolUser | Sort UserPrincipalName
+
+            #Null the $User variable
+            $User=""
+
+            #Get the user details
+            ""
+            do {
+            $User = Read-Host "Enter the email address of the user you wish to delete"
+            
+                #Loop to catch blank entry
+                if ($user -eq "") {
+                    Write-Host -ForegroundColor Red "Error: No User Entered"
+                    $t=Read-Host "Did you mean to do this? [Y/N]"
+                        if ($t -eq "Y") {
+                            Write-Host -ForegroundColor Yellow "Fine, Byeee!"
+                            $user="something"
+                         } else {
+                               ""
+                               Write-Host -ForegroundColor Yellow "Try again..."
+                               ""
+                               $User = Read-Host "Enter the email address of the user you wish to delete" 
+                        }
+                 }
+            } while ($user -eq "")
+
+           #Remove the user
+           if ($user -eq "something") {
+                Write-Host -ForegroundColor Red "Error: No User Entered - Exiting"
+                exit
+            } else {
+                   Write-Host -ForegroundColor Cyan "Remove-MsolUser -UserPrincipalName $User -force"
+                   Remove-MsolUser -UserPrincipalName $User -force
+                   ""
+                   "User Removed...."
+                   ""
+
+                    #Prompt to remove another user
+                        Write-Host -ForegroundColor Red "Type the response below to remove another user or exit the script"
+                        $n=Read-Host "Remove Another User? [Y/N]"
+
+                            #message to the user
+                            if ($n -eq "Y") {
+                                ""
+                                Write-Host -ForegroundColor Yellow "You typed $n"
+                                Write-Host -ForegroundColor Yellow "Lets destroy another user!!!"
+                                ""
+                                Pause
+                              } else {
+                                  #Exit the script with message
+                                    ""
+                                    Write-Host -ForegroundColor Red "You typed $n"
+                                    Write-Host -ForegroundColor Red "Action Cancelled"
+                                    Write-Host -ForegroundColor Red "Ending Script"
+                                    Write-Host -ForegroundColor Red "I hope your new user enjoys 365!!"
+                            } #End If
+            }
+      } while ($n -eq "Y") #End Do While
+
+        #Kill the switch
+        break
+
+     } #End 1
+    2 <#Manually Purge the MSOL Recycle Bin#> {
+    Write-Host -ForegroundColor Yellow "User Selected 2. PURGING THE RECYCLE BIN"
+
+        #Null the loop variable
+        $r=""
+
+       do {
+        #Show the list of deleted users
+        Write-Host -ForegroundColor Cyan "Get-MsolUser -ReturnDeletedUsers | ft UserPrincipalName,ObjectId"
+        Get-MsolUser -ReturnDeletedUsers | ft UserPrincipalName,ObjectId
+        ""
+            #Set the variables
+            $UPN = Read-Host "Enter the UserPrincipleName you wish to purge from the list above"
+                    ""
+                    Write-Host -ForegroundColor Yellow "PUUURRRRRGGGEEEE!!!!!!!"
+                    ""
+                #Remove the user
+                Write-Host -ForegroundColor Cyan "Remove-MsolUser -UserPrincipalName $UPN -RemoveFromRecycleBin"
+                Remove-MsolUser -UserPrincipalName $UPN -RemoveFromRecycleBin
+
+                Write-Host -ForegroundColor Yellow "Done."
+
+                        #Prompt to remove another user
+                        Write-Host -ForegroundColor Red "Type the response below to remove another user or exit the script"
+                        $r=Read-Host "Remove Another User? [Y/N]"
+
+                            #message to the user
+                            if ($r -eq "Y") {
+                                ""
+                                Write-Host -ForegroundColor Yellow "Lets destroy another user!!!"
+                                ""
+                              } else {
+                                  #Exit the script with message
+                                    ""
+                                    Write-Host -ForegroundColor Red "Action Cancelled"
+                                    Write-Host -ForegroundColor Red "Ending Script"
+                                    Write-Host -ForegroundColor Red "I hope you knew what you were doing!!"
+                            } #End If
+                    
+        } while ($r -eq "Y")
+     } #End 2
+    3 <#Create a bulk of new MSOL users#> {
+    Write-Host -ForegroundColor Yellow "User Selected 3. BULK CREATING NEW USERS"
+    ""
+        #Null the loop variable
+        $x=""
+
+        do {
+            Write-Host -ForegroundColor Yellow "User Selected 3. BULK CREATING NEW USERS"
+            ""
+            #Prompt to select the right licence
+            Write-Host -ForegroundColor Red "THIS PROCESS REQUIRES THAT YOU COMPILE A .CSV FILE WITH THE RELEVANT INFORMATION BEFORE CONTINUING"
+            ""
+            pause
+
+                #CSV Creation info
+                Write-Host -ForegroundColor Green "**************************************"
+                Write-Host -ForegroundColor Green "Instructions for creating the CSV file"
+                Write-Host -ForegroundColor Green "**************************************"
+                    Write-Host -ForegroundColor Yellow " 1. Create a blank Excel document"
+                    Write-Host -ForegroundColor Yellow " 2. Enter the following column header:"
+                    Write-Host -ForegroundColor Green "    UserPrincipalName, FirstName, LastName, DisplayName, LicenseAssignment, PasswordNeverExpires, Password"
+                    Write-Host -ForegroundColor Cyan "    NOTE: UserPrincipalName should be the Email Address of the user BUT it will be the Username for the 365 account so it may be different"
+                    ""
+                    Write-Host -ForegroundColor Yellow " 3. Fill the columns with the respective data"
+                    Write-Host -ForegroundColor Yellow " 4. Note the full filename and path for use later in the script [e.g. c:\folder\my_file.csv"
+
+                        #Get the list of available licences
+                        ""
+                        Write-Host -ForegroundColor Yellow "If the 'ActiveUnits' column is equal to the 'ConsumedUnits' then a licence must be added via the web portal before proceeding."
+                        Write-Host -ForegroundColor Yellow "If the 'ActiveUnits' column is more than the 'ConsumedUnits' then there is a spare licence and you can continue."
+                        ""
+                            #Get account SKU details
+                            Write-Host -ForegroundColor Cyan "Get-MsolAccountSku | ft -AutoSize"
+                            Get-MsolAccountSku | ft -AutoSize
+                            ""
+                            #Set variables
+                            $AccountSkuId=Read-Host "Please Enter the relevant AccountSkuId above [Stored in Variable: `$AccountSkuId]"
+                            ""
+                            Write-Host -ForegroundColor Dark Yellow "Setting variable `$LicCheck"
+                            Write-Host -ForegroundColor Cyan "Get-MsolAccountSku | Where-Object { $_.AccountSkuId -eq '`$AccountSkuId' -and $_.ActiveUnits -gt $_.ConsumedUnits }"
+
+                            $LicCheck=Get-MsolAccountSku | Where-Object { $_.AccountSkuId -eq "$AccountSkuId" -and $_.ActiveUnits -gt $_.ConsumedUnits }
+            
+                    #Loop to point admin to the web portal if licence count is insufficient
+                    if (Get-MsolAccountSku | Where-Object { $_.AccountSkuId -eq "$AccountSkuId" -and $_.ActiveUnits -eq $_.ConsumedUnits }) {
+                      do {
+                      $LicCheck=Get-MsolAccountSku | Where-Object { $_.AccountSkuId -eq "$AccountSkuId" -and $_.ActiveUnits -gt $_.ConsumedUnits }
+                      Write-Host -ForegroundColor Red "[1] NO SPARE LICENCES - Please add more using the web admin portal ensuring there are enough spare for the amount of users you are adding."
+                      Write-Host -ForegroundColor DarkCyan "    Redirecting to the web portal https://portal.office.com"
+                      ""
+                      Write-Host -ForegroundColor Yellow "        Launching Internet Explorer..."
+                      Start-Process -FilePath "C:\Program Files\Internet Explorer\iexplore.exe" "https://portal.office.com/"
+                      ""
+                      Write-Host -ForegroundColor Yellow "And just pausing to allow you time to add the licences in the portal"
+                      Write-Host -ForegroundColor Yellow "Once you have added the licences..."
+                      pause
+                      Write-Host -ForegroundColor Yellow "Checking again...."
+                            #Begin[YesNo]
+                            $title = "YesNo"
+                            $message = "Have you been into the portal and added enough licences?"
+
+                            $yes = New-Object System.Management.Automation.Host.ChoiceDescription "&Yes, and I have checked there there are enough","Yes I have, Definitely"
+                            $no = New-Object System.Management.Automation.Host.ChoiceDescription "&No","No, Not Yet."
+
+                            $options = [System.Management.Automation.Host.ChoiceDescription[]]($yes, $no)
+
+                            $result = $host.ui.PromptForChoice($title, $message, $options, 1)
+
+                            switch ($result) {
+                                0 <#Yes#> {
+	                                   $LicCheck = $true
+                                } #End 0
+                                1 <#No#> {
+                                        $LicCheck = $False
+                                }
+                            } #End Switch
+                      } until ($LicCheck -eq $true)
+                    }
+                                #Just check again to ensure
+                            ""
+                            ""
+                            Write-Host -ForegroundColor Yellow "Checking again...."
+                            ""
+                            if ($LicCheck -eq $False) {
+                                Get-MsolAccountSku | ft -AutoSize
+                                } else {
+                                ""
+                                Write-Host -ForegroundColor Yellow "There are some spare licences, just check again that there are enough or this will fail."
+                                ""
+                                Get-MsolAccountSku | ft -AutoSize
+                                ""
+                            }
+
+        #Gather info
+                ""
+            $Path = Read-Host "Enter the full file path of the CSV (Including file name and extension)"
+
+        #Import the users with the CSV
+                Write-Host -ForegroundColor Yellow "Hands off the keyboard and I'll create the users...."
+                ""
+                Write-Host -ForegroundColor Green "Running Cmdlet:"
+                Write-Host -ForegroundColor Cyan "Import-Csv –Path $Path| ForEach-Object { New-MsolUser -UserPrincipalName `$_.UserPrincipalName -FirstName `$_.FirstName -LastName `$_.LastName -DisplayName `$_.DisplayName -LicenseAssignment `$_.LicenseAssignment -PasswordNeverExpires `$_.PasswordNeverExpires –UsageLocation 'GB' }"
+                Import-Csv –Path $Path| ForEach-Object { New-MsolUser -UserPrincipalName $_.UserPrincipalName -FirstName $_.FirstName -LastName $_.LastName -DisplayName $_.DisplayName -LicenseAssignment $_.LicenseAssignment -PasswordNeverExpires $_.PasswordNeverExpires –UsageLocation “GB” }
+                ""    
+                    Write-Host -ForegroundColor Yellow "Done that bit...."
+                    Write-Host -ForegroundColor Yellow "Now to set the passwords on the accounts...."
+                    ""
+                        Write-Host -ForegroundColor Green "Running Cmdlet:"
+                        Write-Host -ForegroundColor Cyan "Import-Csv –Path $Path| ForEach-Object {Set-MsolUserPassword –UserPrincipalName `$_.UserPrincipalName –NewPassword `$_.Password -ForceChangePassword `$false }"
+                        Import-Csv –Path $Path| ForEach-Object {Set-MsolUserPassword –UserPrincipalName $_.UserPrincipalName –NewPassword $_.Password -ForceChangePassword $false }
+                        ""
+                            Write-Host -ForegroundColor Yellow "Done that bit...."
+                            Write-Host -ForegroundColor Yellow "And finally, to set the passwords to never expire...."
+                            ""
+                                Write-Host -ForegroundColor Green "Running Cmdlet:"
+                                Write-Host -ForegroundColor Cyan "Get-MSOLUser | Set-MsolUser -PasswordNeverExpires `$true"
+                                Get-MSOLUser | Set-MsolUser -PasswordNeverExpires $true 
+
+                                #Loop to add another batch of users
+                                Write-Host -ForegroundColor Red "Type the response below to add another batch of users or exit the script"
+                                $x=Read-Host "Add Another Batch of Users? [Y/N]"
+
+                                if ($x -eq "Y") {
+                                    Write-Host -ForegroundColor Yellow "You typed $x"
+                                    Write-Host -ForegroundColor Yellow "Lets add another batch..."
+                                    pause
+                                  } else {
+                                        Write-Host -ForegroundColor Red "You typed $x"
+                                        Write-Host -ForegroundColor Red "Ending Script"
+                                        Write-Host -ForegroundColor Red "I hope your new users enjoy 365!!" 
+                                }
+
+        } while ($x -eq "y")
+
+        #Kill the switch
+        break
+
+     } #End 3
+    4 <#Assign Licences to a user#> {
+        do {
+         Write-Host -ForegroundColor Yellow "User Selected 4. ASSIGNING LICENCES TO USERS"
+         ""
+          #Null the looping variable
+          $o =""
+
+          #Prompt to create the CSV file
+          Write-Host -ForegroundColor Red "THIS PROCESS REQUIRES THAT YOU COMPILE A .CSV FILE WITH THE RELEVANT INFORMATION BEFORE CONTINUING"
+                    ""
+                    pause
+
+                        #CSV Creation info
+                        Write-Host -ForegroundColor Green "**************************************"
+                        Write-Host -ForegroundColor Green "Instructions for creating the CSV file"
+                        Write-Host -ForegroundColor Green "**************************************"
+                            Write-Host -ForegroundColor Yellow " 1. Create a blank Excel document"
+                            Write-Host -ForegroundColor Yellow " 2. Enter the following column headers:"
+                            Write-Host -ForegroundColor Green "    UserPrincipalName"
+                            Write-Host -ForegroundColor Cyan "    NOTE: UserPrincipalName should be the Email Address of the user BUT it will be the Username for the 365 account so it may be different"
+                            ""
+                            Write-Host -ForegroundColor Yellow " 3. Fill the column with the respective data"
+                            Write-Host -ForegroundColor Yellow " 4. Note the full filename and path for use later in the script [e.g. c:\folder\my_file.csv"
+
+
+            #Get the list of available licences
+            ""
+            Write-Host -ForegroundColor Yellow "If the 'ActiveUnits' column is equal to the 'ConsumedUnits' then a licence must be added via the web portal before proceeding."
+            Write-Host -ForegroundColor Yellow "If the 'ActiveUnits' column is more than the 'ConsumedUnits' then there is a spare licence and you can continue."
+            ""
+            #Get account SKU details
+            Write-Host -ForegroundColor Cyan "Get-MsolAccountSku | ft -AutoSize"
+            ""
+            Get-MsolAccountSku | ft -AutoSize
+            ""
+            #Set variables
+            $AccountSkuId=Read-Host "Please Enter the relevant AccountSkuId above [Stored in Variable: `$AccountSkuId]"
+            ""
+            Write-Host -ForegroundColor Dark Yellow "Setting variable `$LicCheck"
+            Write-Host -ForegroundColor Cyan "Get-MsolAccountSku | Where-Object { $_.AccountSkuId -eq '`$AccountSkuId' -and $_.ActiveUnits -gt $_.ConsumedUnits }"
+
+            $LicCheck=Get-MsolAccountSku | Where-Object { $_.AccountSkuId -eq "$AccountSkuId" -and $_.ActiveUnits -gt $_.ConsumedUnits }
+            
+                    #Loop to point admin to the web portal if licence count is insufficient
+                    if (Get-MsolAccountSku | Where-Object { $_.AccountSkuId -eq "$AccountSkuId" -and $_.ActiveUnits -eq $_.ConsumedUnits }) {
+                      do {
+                          $LicCheck=Get-MsolAccountSku | Where-Object { $_.AccountSkuId -eq "$AccountSkuId" -and $_.ActiveUnits -gt $_.ConsumedUnits }
+                          Write-Host -ForegroundColor Red "[1] NO SPARE LICENCES - Please add more using the web admin portal."
+                          Write-Host -ForegroundColor DarkCyan "    Redirecting to the web portal https://portal.office.com"
+                          ""
+                              Write-Host -ForegroundColor Yellow "        Launching Internet Explorer..."
+                              Start-Process -FilePath "C:\Program Files\Internet Explorer\iexplore.exe" "https://portal.office.com/"
+                              ""
+                                  Write-Host -ForegroundColor Yellow "And just pausing to allow you time to add the licences in the portal"
+                                  Write-Host -ForegroundColor Yellow "Once you have added the licences..."
+                                  pause
+                                  Write-Host -ForegroundColor Yellow "Checking again...."
+
+                                #Begin[YesNo]
+                                $title = "YesNo"
+                                $message = "Have you been into the portal and added a licence?"
+
+                                $yes = New-Object System.Management.Automation.Host.ChoiceDescription "&Yes","Yes I have, Definitely"
+                                $no = New-Object System.Management.Automation.Host.ChoiceDescription "&No","No, Not Yet."
+
+                                $options = [System.Management.Automation.Host.ChoiceDescription[]]($yes, $no)
+
+                                $result = $host.ui.PromptForChoice($title, $message, $options, 1)
+
+                                switch ($result) {
+                                    0 <#Yes#> {
+	                                       $LicCheck = $true
+                                    } #End 0
+                                    1 <#No#> {
+                                            $LicCheck = $False
+                                    }
+                                } #End Switch
+                      } until ($LicCheck -eq $true)
+                    }
+                                #Just check again to ensure
+                            ""
+                            ""
+                            Write-Host -ForegroundColor Yellow "Checking again...."
+                            ""
+                            if ($LicCheck -eq $False) {
+                                Get-MsolAccountSku | ft -AutoSize
+                                } else {
+                                ""
+                                Write-Host -ForegroundColor Yellow "There are spare licences"
+                                ""
+                                ""
+                            }
+
+                                #Set the variables
+                                Write-Host -ForegroundColor Yellow "Users will be assigned the following licences: $AccountSkuId"
+                                "" 
+                                $UsageLocation = "GB"
+                                Write-Host -ForegroundColor Yellow "Location of the users automatically set to: $UsageLocation"
+                                ""
+                                #Run the magic
+                                Write-Host -ForegroundColor Yellow "Setting the environment ready for the magic"
+                                ""
+                                Write-Host -ForegroundColor Green "Running cmdlet:"
+                                Write-Host -ForegroundColor Cyan "`$LicenseOptions = New-MsolLicenseOptions -AccountSkuId $AccountSkuId"
+                                $LicenseOptions = New-MsolLicenseOptions -AccountSkuId $AccountSkuId
+
+                                $Users = Read-Host "Enter the full file path of the CSV (Including file name and extension)"
+
+                                Import-Csv -Path $Users | ForEach-Object {
+                                    Set-MsolUser -UserPrincipalName $_.UserPrincipalName -UsageLocation $UsageLocation
+                                    Set-MsolUserLicense -UserPrincipalName $_.UserPrincipalName -AddLicenses $AccountSkuId -LicenseOptions $LicenseOptions
+                                }
+
+                                        #Loop to add another batch of users
+                                        Write-Host -ForegroundColor Red "Type the response below to add another batch of licences or exit the script"
+                                        $o=Read-Host "Add Another Batch of Licences? [Y/N]"
+
+                                        if ($o -eq "Y") {
+                                            Write-Host -ForegroundColor Yellow "You typed $o"
+                                            Write-Host -ForegroundColor Yellow "Lets add another batch..."
+                                            pause
+                                          } else {
+                                                Write-Host -ForegroundColor Red "You typed $o"
+                                                Write-Host -ForegroundColor Red "Ending Script"
+                                                Write-Host -ForegroundColor Red "I hope your new users enjoy 365!!" 
+                                        }
+        } while ($o -eq "Y") 
+
+        #Kill the switch
+        break
+
+     } #End 4
+    5 <#Get a list of licences assigned to users#> {
+        do {
+         Write-Host -ForegroundColor Yellow "User Selected 5. OBTAINING A LIST OF LICENCES"
+         ""
+          #Null variables
+          $k =""
+          $user=""
+
+            #Run the command
+            ""
+            Write-Host -ForegroundColor Yellow "Getting the licence info"
+            ""
+                Write-Host -ForegroundColor Green "Running cmdlet:"
+                Write-Host -ForegroundColor Cyan "get-msoluser -all | ForEach-Object { '============='; `$_.DisplayName; `$_.licenses.servicestatus } >" "c:\users\$env:username\services.csv"
+
+                    #The cmdlet
+                    get-msoluser -all | ForEach-Object { "============="; $_.DisplayName; $_.licenses.servicestatus } > "c:\users\$env:username\services.csv"
+                    ""
+                    #Tell the user where the data is
+                    Write-Host -ForegroundColor Yellow "CSV data file exported to" "c:\users\$env:username\services.csv"
+            
+                        #Loop to run it again
+                        Write-Host -ForegroundColor Red "Type the response below to run it again or exit the script"
+                        $k=Read-Host "Add Another Batch of Users? [Y/N]"
+
+                        if ($k -eq "Y") {
+                        Write-Host -ForegroundColor Yellow "You typed $k"
+                        Write-Host -ForegroundColor Yellow "Lets add another batch..."
+                        pause
+                        } else {
+                        Write-Host -ForegroundColor Red "You typed $k"
+                        Write-Host -ForegroundColor Red "Ending Script"
+                        Write-Host -ForegroundColor Red "I hope your new users enjoy 365!!" 
+                        }
+
+        } while ($k -eq "Y") 
+
+        #Kill the switch
+        break
+
+     } #End 5
+    6 <#Get MSOL tennant details#> {
+        do {
+            #Null the variables
+            $m = ""
+
+            #Run the script
+            Write-Host -ForegroundColor Yellow "User Selected 6. GETTING TENNANT DETAILS"
+            ""
+              Write-Host -ForegroundColor Yellow "Getting the details..."
+              ""
+                  Write-Host -ForegroundColor Green "Running cmdlet:"
+                  Write-Host -ForegroundColor Cyan "Get-MSOLTennantDetails"
+
+                    #The cmdlet
+                    Get-MSOLTennantDetails > "c:\users\$env:username\365TennantInfo.txt"
+                    ""
+                    #Tell the user where the data is
+                    Write-Host -ForegroundColor Yellow "Info exported to" "c:\users\$env:username\services.txt"
+                    pause
+
+                        #Loop to run it again
+                        Write-Host -ForegroundColor Red "Type the response below to run it again or exit the script"
+                        $m=Read-Host "Run it again? [Y/N]"
+
+                            if ($m -eq "Y") {
+                            Write-Host -ForegroundColor Yellow "You typed $m"
+                            Write-Host -ForegroundColor Yellow "Lets run it again..."
+                            pause
+                            } else {
+                            Write-Host -ForegroundColor Red "You typed $m"
+                            Write-Host -ForegroundColor Red "Ending Script"
+                            }
+
+        } while ($m -eq "Y")
+
+        #Kill the switch
+        break
+
+     } #End 6
+    7 <#Set passwords to never expire#> {
+        do {
+            #Null the variable
+            $b=""    
+                #Run the script
+                Write-Host -ForegroundColor Yellow "User Selected 7. SET PASSWORD TO NEVER EXPIRE"
+                    ""
+                        Write-Host -ForegroundColor Yellow "Running the script..."
+                        ""
+                        Write-Host -ForegroundColor Green "Running cmdlet:" 
+                        Write-Host -ForegroundColor Cyan "Get-MsolUser | Set-MsolUser -PasswordNeverExpires `$true"
+                            
+                            #The cmdlet
+                            Get-MsolUser | Set-MsolUser -PasswordNeverExpires $true
+                            ""
+                            Write-Host -ForegroundColor Yellow "Done."
+
+                                #Loop to run it again
+                                Write-Host -ForegroundColor Red "Type the response below to run it again or exit the script"
+                                $b=Read-Host "Run it again? [Y/N]"
+
+                                    if ($b -eq "Y") {
+                                    Write-Host -ForegroundColor Yellow "You typed $b"
+                                    Write-Host -ForegroundColor Yellow "Lets run it again..."
+                                    pause
+                                    } else {
+                                    Write-Host -ForegroundColor Red "You typed $b"
+                                    Write-Host -ForegroundColor Red "Ending Script"
+                                    }
+
+        } while ($b -eq "Y") 
+        #Kill the switch
+        break
+
+     } #End 7
+    8 <#Reset a 365 Password#> {
+        do {
+          Write-Host -ForegroundColor Yellow "User Selected 8. RESETTING A 365 PASSWORD"
+            ""
+            Write-Host -ForegroundColor Yellow "Lets reset the password"
+
+            #Null the variables
+            $UserA=""
+            $Pass=""
+
+                #Specify user account
+                ""
+	                $UserA = read-host "Please enter the Email Address of the User and press enter"
+
+                #Specify USER-B's account
+                ""
+	                $Pass = read-host "Please enter the New Password and press enter"
+
+                    #Reset the password
+                    ""
+                    Write-Host -ForegroundColor Yellow "Resetting the password for $UserA"
+                    Write-Host -ForegroundColor Cyan "Set-MsolUserPassword -UserPrincipalName $UserA -NewPassword $Pass -ForceChangePassword `$false"
+
+                        Set-MsolUserPassword -UserPrincipalName $UserA -NewPassword $Pass -ForceChangePassword $false
+                        ""
+                        Write-Host -ForegroundColor Yellow "Done that."
+                        Write-Host -ForegroundColor Yellow "Now setting to never expire"
+                        ""
+                        Write-Host -ForegroundColor Cyan "Get-MsolUser | Set-MsolUser -PasswordNeverExpires `$true"
+                        Get-MsolUser | Set-MsolUser -PasswordNeverExpires $true
+                        ""
+                        Write-Host -ForegroundColor Yellow "Done that too."
+
+                            #Loop
+                            $l = read-host "Would you like to reset another password? [Y/N]"
+                            if ($l -eq "y") {
+                                #Loop back to the start
+                                Write-Host -ForegroundColor Yellow "You typed $l..."
+                                Write-Host -ForegroundColor Yellow "Lets reset another password!"
+                             } else {
+                                  #Exit the script with message
+                                  ""
+                                  Write-Host -ForegroundColor Yellow "You typed $l...."
+                                  Write-Host -ForegroundColor Red "Action Cancelled"
+                                  Write-Host -ForegroundColor Red "Ending Script"
+                                  Write-Host -ForegroundColor Red "I hope your user enjoys 365!!"
+                            }
+
+        } while ($l -eq "Y")
+      
+           #Break the switch loop
+           break
+
+     } #End 8
+    9 <#Bulk change the UPN for all users#> {
+        do {
+         Write-Host -ForegroundColor Yellow "User Selected 9. CHANGING THE UPN FOR ALL USERS"
+         ""
+          #Null variables
+          $c =""
+          $x=""
+          $path=""
+    
+            #Prompt to select the right licence
+            Write-Host -ForegroundColor Red "THIS PROCESS REQUIRES THAT YOU COMPILE A .CSV FILE WITH THE RELEVANT INFORMATION BEFORE CONTINUING"
+            ""
+            pause
+
+             #CSV Creation info
+             Write-Host -ForegroundColor Green "**************************************"
+             Write-Host -ForegroundColor Green "Instructions for creating the CSV file"
+             Write-Host -ForegroundColor Green "**************************************"
+                Write-Host -ForegroundColor Yellow " 1. Create a blank Excel document"
+                Write-Host -ForegroundColor Yellow " 2. Enter the following column headers:"
+                Write-Host -ForegroundColor Green "    Smtp1, Smtp2"
+                Write-Host -ForegroundColor Cyan "    NOTE: Smtp1 needs to contain the OLD name, Smtp2 needs to contain the NEW name"
+                ""
+                Write-Host -ForegroundColor Yellow " 3. Fill the columns with the respective data"
+                Write-Host -ForegroundColor Yellow " 4. Note the full filename and path for use later in the script [e.g. c:\folder\my_file.csv"
+                $x=Read-Host "You understand about the columns? [Y/N]"
+                ""
+                  $Path = Read-Host "Enter the full file path of the CSV (Including file name and extension)"
+
+                    #Console output
+                    Write-Host -ForegroundColor Yellow "Lets do the work"
+                    ""
+                    Write-Host -ForegroundColor Green "Running cmdlet:"
+                    Write-Host -ForegroundColor Cyan "import-csv -Path $path | ForEach-Object { Set-MsolUserPrincipalName -UserPrincipalName `$_.smtp1 -NewUserPrincipalName `$_.smtp2 }"
+            
+                      #The cmdlet
+                      import-csv -Path $path | ForEach-Object { Set-MsolUserPrincipalName -UserPrincipalName $_.smtp1 -NewUserPrincipalName $_.smtp2 }
+                      ""
+                      Write-Host -ForegroundColor Yellow "Done"
+                      ""
+
+                        #Loop to run it again
+                        Write-Host -ForegroundColor Red "Type the response below to run it again or exit the script"
+                        $c=Read-Host "Add Another Batch of Users? [Y/N]"
+
+                        if ($c -eq "Y") {
+                        Write-Host -ForegroundColor Yellow "You typed $c"
+                        Write-Host -ForegroundColor Yellow "Lets add another batch..."
+                        pause
+                        } else {
+                        Write-Host -ForegroundColor Red "You typed $c"
+                        Write-Host -ForegroundColor Red "Ending Script"
+                        Write-Host -ForegroundColor Red "I hope your new users enjoy 365!!" 
+                        }
+
+        } while ($c -eq "Y")
+
+        #Break the switch loop
+        break
+
+     } #End 9
+    10 <#Restore a User#>{    
+        do {
+          Write-Host -ForegroundColor Yellow "User Selected 10. RESTORE A 365 USER"
+
+          #Null the variable
+          $y=""
+
+            #Check the deleted user list
+            ""
+            Write-Host -ForegroundColor Yellow "Checking the list of deleted users..."
+            ""
+            Write-Host -ForegroundColor Green "Running cmdlet:"
+            Write-Host -ForegroundColor Cyan "Get-MsolUser -ReturnDeletedUsers | ft UserPrincipalName"
+            ""
+                Get-MsolUser -ReturnDeletedUsers | ft UserPrincipalName
+        
+            #Null the variables
+            Write-Host -ForegroundColor Yellow "Nulling the variables before we continue..."
+            $UserA = ""
+            Write-Host -ForegroundColor Yellow "`$UserA = $UserA"
+            $DelUser = ""
+
+                #Set the environment variables
+                ""
+                Write-Host -ForegroundColor Yellow "Setting the environment variables"
+                $UserA = read-host "Please enter the Email Address of the User to restore and press enter"
+                Write-Host -ForegroundColor Yellow "User to remove is $UserA"
+                Write-Host -ForegroundColor Yellow "Stored in variable: `$UserA"
+                pause
+                ""
+                Write-Host -ForegroundColor Yellow "Setting `$DelUser"
+                ""
+                Write-Host -ForegroundColor Green "Running cmdlet:"
+                Write-Host -ForegroundColor Cyan "`$DelUser = Get-MsolUser -UserPrincipalName $userA -ReturnDeletedUsers"
+                $DelUser = Get-MsolUser -UserPrincipalName $userA -ReturnDeletedUsers
+                pause
+
+                    #Restore the user
+                    Write-Host -ForegroundColor Yellow "Restoring the user...."
+                    ""
+                    Write-Host -ForegroundColor Green "Running cmdlet:"
+                    Write-Host -ForegroundColor Cyan "Restore-MsolUser -ObjectId `$DelUser.ObjectId"
+                        Restore-MsolUser -ObjectId $DelUser.ObjectId
+                            Write-Host -ForegroundColor Yellow "Done"
+    
+                        #Loop
+                        $y = read-host "Would you like to restore another user? [Y/N]"
+                        if ($y -eq "Y") {
+                            #Loop back to the start
+                            Write-Host -ForegroundColor Yellow "You typed $y...."
+                            Write-Host -ForegroundColor Yellow "Lets delete someone else!"
+                            ""
+                         } else {
+                              #Exit the script with message
+                              ""
+                              Write-Host -ForegroundColor Yellow "You typed $y...."
+                              Write-Host -ForegroundColor Red "Action Cancelled"
+                              Write-Host -ForegroundColor Red "Ending Script"
+                              Write-Host -ForegroundColor Red "I hope your new user enjoys 365!!"
+                        }             
+
+        } while ($y -eq "Y")
+     
+         #Kill the Switch loop
+         break
+
+     } #End 11
+    11 <#Cancel and Exit#>{
+    Write-Host -ForegroundColor Red "User Selected 11. CANCEL"
+    ""
+        Write-Host -ForegroundColor Red "Action Cancelled"
+        Write-Host -ForegroundColor Red "Script Ended Prematurely"
+        Write-Host -ForegroundColor Red "Script is sad that it didn't get a run"
+        exit
+		break
+     } #End 12
+    } #End Switch
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    } elseif ($sw -eq 1) <#EXCH#> {
+    # EXCHANGE Script Selection
+    $title = "Task Selection"
+    $message = "What would you like to do"
+
+    $CalPermMan = New-Object System.Management.Automation.Host.ChoiceDescription "&Calendar Permissions","Add/Remove Calendar Permissions"      #0
+    $CustAtt = New-Object System.Management.Automation.Host.ChoiceDescription "&Attribute Management","Manually Add Custom Attributes"          #1
+    $DistGrpMan = New-Object System.Management.Automation.Host.ChoiceDescription "&Distribution Groups","Manage Distribution Groups"            #2
+    $MBPerms = New-Object System.Management.Automation.Host.ChoiceDescription "&Mailbox Permissions","Manage Mailbox Permissions"               #3
+    $SafeSend = New-Object System.Management.Automation.Host.ChoiceDescription "&Safe/Block Senders","Manage the Safe/Blocked Senders List"     #4
+    $SendAs = New-Object System.Management.Automation.Host.ChoiceDescription "&Send As (All Users)","Add the Send As Permission to All Users"   #5
+    $AddAlias = New-Object System.Management.Automation.Host.ChoiceDescription "&Add Alias","Add an alias to a mailbox"                         #6
+    $PriSMTP = New-Object System.Management.Automation.Host.ChoiceDescription "&Change Primary SMTP","Change the primary SMTP address"          #7
+    $Canc = New-Object System.Management.Automation.Host.ChoiceDescription "&Cancel","Cancel and Exit"                                          #8
+
+    $options = [System.Management.Automation.Host.ChoiceDescription[]]($CalPermMan, $CustAtt, $DistGrpMan, $MBPerms, $SafeSend, $SendAs, $AddAlias, $PriSMTP, $canc)
+
+    $result = $host.ui.PromptForChoice($title, $message, $options, 8)
+
+    switch ($result) {
+    0 <#CalPermMan#> { 
+    do {
+    Write-Host -ForegroundColor Yellow "User Selected 0. CALENDAR PERMISSION MANAGEMENT"
+
+    #Null the variables
+    $s=""
+    $UserA=""
+    $UserB=""
+    $Perm=""
+
+        # CalPermMan Script Selection
+        $title = "Task Selection"
+        $message = "What would you like to do"
+
+        $AddCalPerm = New-Object System.Management.Automation.Host.ChoiceDescription "&Add Permissions","Add Calendar Permissions"                  #0
+        $RemCalPerm = New-Object System.Management.Automation.Host.ChoiceDescription "&Remove Permissions","Remove Calendar Permissions"            #1
+        $Canc = New-Object System.Management.Automation.Host.ChoiceDescription "&Cancel","Cancel and Exit"                                          #2
+
+        $options = [System.Management.Automation.Host.ChoiceDescription[]]($AddCalPerm, $RemCalPerm, $canc)
+
+        $result = $host.ui.PromptForChoice($title, $message, $options, 2)
+
+        switch ($result) {
+        0 <#AddCalPerm#> { 
+        do {
+            Write-Host -ForegroundColor Yellow "User Selected 0. ADDING CALENDAR PERMISSIONS"
+
+             ""
+              #Null variables
+              $v =""
+              $UserA=""
+              $UserB=""
+              $Perm=""
+    
+                #List the mailboxes
+                    Write-Host -ForegroundColor Yellow "Fetching the list of mailboxes..."
+                    ""
+                    Write-Host -ForegroundColor Green "Running cmdlet:"
+                    Write-Host -ForegroundColor Cyan "Get-Mailbox | Fl Name"
+                        Get-Mailbox | Fl Name
+
+                        #Get UserA's email address
+                        Write-Host -ForegroundColor Yellow "Retrieving variable data..."
+                        ""
+                            $UserA = read-host "Please enter the name of the user who needs access to the calendar (without the @*.*)"
+                            Write-Host -ForegroundColor Cyan "$UserA stored in variable `$UserA"
+                                ""
+                        #Get UserB's email address
+                            $UserB = read-host "Please enter the name of the user whose calendar you wish to amend (without the @*.*)"
+                            Write-Host -ForegroundColor Cyan "$UserB stored in variable `$UserB"
+                                ""
+                                #Get the required level of permission
+                                Write-Host -ForegroundColor Yellow "Specify the level of permission required:" 
+                                Write-Host -ForegroundColor Green "    - Owner, PublishingEditor, Editor, Reviewer, Contributor"
+                                Write-Host -ForegroundColor Cyan "    - NOTE: Editor may not work across different versions of the Outlook Client"
+                                        ""
+                                    $Perm = read-host "Please enter one of the above permissions shown in GREEN"
+
+	                                Write-Host -ForegroundColor Red "INFO: If shown, IGNORE 'There is no existing permission entry found for user:"
+
+                                    pause
+
+                                      #Remove exisiting permissions
+                                        Write-Host -ForegroundColor Yellow "Removing existing permissions on the user account (if any)..."
+                                        ""
+                                        Write-Host -ForegroundColor Green "Running cmdlet:"
+                                        Write-Host -ForegroundColor Cyan "Remove-MailboxFolderPermission `$($UserB+':\calendar') -User $UserA -confirm:`$false"
+                            
+                                            #the Cmdlet
+                                            Remove-MailboxFolderPermission $($UserB+":\calendar") -User $UserA -confirm:$false
+                                            ""
+                                            Write-Host -ForegroundColor Yellow "Done that, onto the next bit..."
+                                            ""
+                                            #Grant the access
+                                                Write-Host -ForegroundColor Yellow "Adding the new permissions you require..."
+                                                ""
+                                                Write-Host -ForegroundColor Green "Running cmdlet:"
+                                                Write-Host -ForegroundColor Cyan "Add-MailboxFolderPermission `$($UserB+':\calendar') -User $UserA -AccessRights $perm -confirm:`$true"
+                            
+                                                    #The cmdlet
+                                                    Add-MailboxFolderPermission $($UserB+":\calendar") -User $UserA -AccessRights $perm -confirm:$true
+                                                    ""
+                                                    Write-Host -ForegroundColor Yellow "Complete!"
+                                                    ""
+                                                        #Loop to run it again
+                                                        $v=Read-Host "Would you like to add more calendar permissions? [Y/N]"
+
+                                                        if ($v -eq "Y") {
+                                                            Write-Host -ForegroundColor Yellow "You typed $v"
+                                                            Write-Host -ForegroundColor Yellow "Lets add some more permissions!"
+                                                            pause
+                                                          } else {
+                                                                Write-Host -ForegroundColor Red "You typed $v"
+                                                                Write-Host -ForegroundColor Red "Ending Script"
+                                                                Write-Host -ForegroundColor Red "I hope your users enjoy the new power they have!!" 
+                                                        }
+        } while ($v -eq "Y") 
+
+             #Kill the Switch loop
+             break
+
+         } #End 0
+        1 <#RemCalPerm#> {
+        do {
+        Write-Host -ForegroundColor Yellow "User Selected 1. REMOVING CALENDAR PERMISSIONS"
+
+        #Null the variables
+        $y=""
+        $UserA=""
+        $UserB=""
+
+            #Get UserA's email address
+            Write-Host -ForegroundColor Yellow "Retrieving variable data..."
+            ""
+                $UserA = read-host "Please enter the name of the user whose access needs revoking (without the @*.*)"
+                Write-Host -ForegroundColor Cyan "$UserA stored in variable `$UserA"
+                    ""
+                    #Get UserB's email address
+                    $UserB = read-host "Please enter the name of the user whose calendar you wish to revoke the access from (without the @*.*)"
+                    Write-Host -ForegroundColor Cyan "$UserB stored in variable `$UserB"
+                    ""
+                    #Remove permissions
+                    Write-Host -ForegroundColor Yellow "Removing the permissions for $UserA on $UserB's account..."
+                    ""
+                    Write-Host -ForegroundColor Green "Running cmdlet:"
+                    Write-Host -ForegroundColor Cyan "Remove-MailboxFolderPermission `$($UserB+':\calendar') -User $UserA -confirm:`$true"    
+                    
+                        #The cmdlet
+                        Remove-MailboxFolderPermission $($UserB+":\calendar") -User $UserA -confirm:$true
+                        Write-Host -ForegroundColor Yellow "Done!"
+                        ""
+
+                            #Loop it again
+                            $y=Read-Host "Would you like to manage calendar permissions again? [Y/N]"
+
+                            if ($y -eq "Y") {
+                                Write-Host -ForegroundColor Yellow "You typed $y"
+                                Write-Host -ForegroundColor Yellow "Lets remove some more permissions!"
+                                pause
+                              } else {
+                                    Write-Host -ForegroundColor Red "You typed $y"
+                                    Write-Host -ForegroundColor Red "Ending Script"
+                                    Write-Host -ForegroundColor Red "I hope you enjoyed that process!" 
+                            }
+
+        } while ($u -eq "y")
+
+             #Kill the Switch loop
+             break
+
+         } #End 1
+        2 <#Canc#> {
+        Write-Host -ForegroundColor Yellow "User Selected 8. CANCEL"
+            Write-Host -ForegroundColor Red "Action Cancelled"
+            exit
+            break
+         } #End 8
+      } #End Switch
+
+            #Loop to run it again
+            $s=Read-Host "Would you like to manage calendar permissions again? [Y/N]"
+
+            if ($s -eq "Y") {
+                Write-Host -ForegroundColor Yellow "You typed $s"
+                Write-Host -ForegroundColor Yellow "Lets add some more permissions!"
+                pause
+              } else {
+                    Write-Host -ForegroundColor Red "You typed $s"
+                    Write-Host -ForegroundColor Red "Ending Script"
+                    Write-Host -ForegroundColor Red "I hope your users enjoy the new power they have!!" 
+            }
+
+    } while ($s -eq "Y")
+
+       #Kill the Switch loop
+       break
+
+     } #End 0
+    1 <#CustAtt#> {
+        do {
+            Write-Host -ForegroundColor Yellow "User Selected 1. ADD/REMOVE CUSTOM ATTRIBUTES"
+            ">"
+            ">"
+
+            #Null the variable
+            $b=""
+            $user=""
+            $custatt=""
+
+                #Get the details
+                $user = Read-Host "Please Enter the Username/Email Address of the User to Manage"
+                ""
+                Write-Host -ForegroundColor Cyan 'INFO: To remove a custom attribute enter "" in the following field, else enter the relevant data'
+                $custatt = Read-Host "Please Enter the Custom Attribute"
+                ""
+                    #Add the custom attribute
+                    Write-Host -ForegroundColor Green "Running cmdlet:"
+                    Write-Host -ForegroundColor Cyan "Set-Mailbox -identity $user -CustomAttribute1 $custatt"
+                    ""
+                        #The cmdlet
+                        Set-Mailbox -identity $user -CustomAttribute1 $custatt
+                        Write-Host -ForegroundColor Yellow "Done!"
+
+
+                        ""
+                        ""
+                        Write-Host -ForegroundColor Yellow "COMPLETE......."
+                        ""
+                        ""
+                        Write-Host -ForegroundColor Yellow "THANKS!!"
+
+                #Loop to run it again
+                $b=Read-Host "Would you like to manage calendar permissions again? [Y/N]"
+
+                if ($b -eq "Y") {
+                    Write-Host -ForegroundColor Yellow "You typed $b"
+                    Write-Host -ForegroundColor Yellow "Lets do that again!"
+                    pause
+                  } else {
+                        Write-Host -ForegroundColor Red "You typed $b"
+                        Write-Host -ForegroundColor Red "Ending Script"
+                        Write-Host -ForegroundColor Red "So custom yo!!" 
+                }
+
+        } while ($b -eq "y")
+
+             #Kill the Switch loop
+             break
+
+     } #End 1
+    2 <#DistGrpMan#> {
+    do {
+    Write-Host -ForegroundColor Yellow "User Selected 2. DISTRIBUTION GROUP MANAGEMENT"
+    ">"
+    ">"
+    ">"
+
+    #Null the variable
+    $y=""
+
+        #DL Script Selection
+        $title = "Distribution List Management"
+        $message = "What would you like to do?
+    
+        Hover over each box for more info"
+
+        $ShowDL = New-Object System.Management.Automation.Host.ChoiceDescription "&Show DLs","Show all Distribution Lists"                         #0
+        $AddMemb = New-Object System.Management.Automation.Host.ChoiceDescription "&Add Member","Add Distribution Group Member"                    #1
+        $DelMemb = New-Object System.Management.Automation.Host.ChoiceDescription "&Delete Member","Remove a Distribution Group Member"            #2
+        $AddMult = New-Object System.Management.Automation.Host.ChoiceDescription "&Add Mulitple","Add Mulitple Distribution Group Members"        #3
+        $Excl = New-Object System.Management.Automation.Host.ChoiceDescription "&Exlude Users","Exlude Users from a Dynamic Distribution Group "   #4
+        $NewDL = New-Object System.Management.Automation.Host.ChoiceDescription "&New Group","Create a Distribution Group"                         #5
+        $DelDL = New-Object System.Management.Automation.Host.ChoiceDescription "&Delete Group","Delete a Distribution Group"                      #6
+        $ChOwn = New-Object System.Management.Automation.Host.ChoiceDescription "&Change Owner","Change Distribution Group Owner"                  #7
+        $ListMem = New-Object System.Management.Automation.Host.ChoiceDescription "&List Member","List members of a Distribution Group"            #8
+        $Canc = New-Object System.Management.Automation.Host.ChoiceDescription "&Cancel","Close and Exit"                                          #9
+
+        $options = [System.Management.Automation.Host.ChoiceDescription[]]($ShowDL, $AddMemb, $AddMult, $Excl, $NewDL, $DelDL, $ChOwn, $ListMem, $Canc)
+
+        $result = $host.ui.PromptForChoice($title, $message, $options, 8)
+
+        switch ($result) {
+          0 <#ShowDL#> { 
+          do {
+              Write-Host -ForegroundColor Yellow "User Selected 0. DISPLAY DISTRIBUTION GROUPS"
+              ""
+              ""
+              #Null the variable
+              $g=""
+
+                #Get the list of DLs
+                Write-Host -ForegroundColor Yellow "Showing all distribution groups..."
+                ""
+                    Write-Host -ForegroundColor Green "Running cmdlet:"
+                    Write-Host -ForegroundColor Cyan "Get-DistributionGroup | fl DisplayName"
+
+                    #The cmdlet
+                    Get-DistributionGroup | fl DisplayName
+
+                        #Pause for user input
+                        pause
+
+                            #Loop to run it again
+                            $g=Read-Host "Would you run that again? [Y/N]"
+
+                            if ($g -eq "Y") {
+                                Write-Host -ForegroundColor Yellow "You typed $g"
+                                Write-Host -ForegroundColor Yellow "Lets do it again!"
+                                pause
+                              } else {
+                                    Write-Host -ForegroundColor Red "You typed $g"
+                                    Write-Host -ForegroundColor Red "Ending Script"
+                                    Write-Host -ForegroundColor Red "Good bye!!" 
+                            }
+
+          } while ($g -eq "y")
+
+              #Kill the Switch loop
+              break
+
+          } #End:ShowDL
+          1 <#AddMemb#> {
+            do {
+                Write-Host -ForegroundColor Yellow "User Selected 1. ADD A MEMBER TO A DISTRIBUTION GROUP"
+                    ""
+                    ""
+                #Null the variable
+                $a=""
+                $DL=""
+                $User=""
+
+                    #Get the list of DLs
+                    Write-Host -ForegroundColor Yellow "Showing all distribution groups..."
+                    ""
+                        Write-Host -ForegroundColor Green "Running cmdlet:"
+                        Write-Host -ForegroundColor Cyan "Get-DistributionGroup | fl DisplayName"
+
+                    #The cmdlet
+                    Get-DistributionGroup | fl DisplayName
+
+                        #Specify the Group to amend
+                        $DL = read-host "Please enter the DisplayName of the Distribution Group listed above"
+                        Write-Host -ForegroundColor Cyan "Stored in variable `$DL"
+                            ""
+                        #Specify the user to add
+                        $User = read-host "Please enter the Email Address of the user you wish to add"
+                        Write-Host -ForegroundColor Cyan "Stored in variable `$User"
+                            ""
+                    # Grant the access
+                        Write-Host -ForegroundColor Yellow "....Giving the user access to the DL"
+                        ""
+                        Write-Host -ForegroundColor Green "Running cmdlet:"
+                        Write-Host -ForegroundColor Cyan "Add-DistributionGroupMember -Identity '$DL' -Member '$User' -BypassSecurityGroupManagerCheck"
+                            
+                            #The cmdlet
+                            Add-DistributionGroupMember -Identity "$DL" -Member "$User" -BypassSecurityGroupManagerCheck
+
+                                #Pause for user input
+                                pause
+
+                            #Loop to run it again
+                            $a=Read-Host "Would you like to add another user to a distribution group? [Y/N]"
+
+                            if ($a -eq "Y") {
+                                Write-Host -ForegroundColor Yellow "You typed $a"
+                                Write-Host -ForegroundColor Yellow "Lets do it again!"
+                                pause
+                              } else {
+                                    Write-Host -ForegroundColor Red "You typed $a"
+                                    Write-Host -ForegroundColor Red "Ending Script"
+                                    Write-Host -ForegroundColor Red "Good bye!!" 
+                            }
+
+             } while ($a -eq "y")
+
+                  #Kill the Switch loop
+                  break
+
+          } #End:AddMemb
+          2 <#DelMemb#> { 
+            do {
+                Write-Host -ForegroundColor Yellow "User Selected 2. DELETE A MEMBER FROM A DISTRIBUTION GROUP"
+                    ""
+                    ""
+                #Null the variable
+                $q=""
+                $DL=""
+                $User=""
+
+                    #Specify the Group to amend
+                    $DL = read-host "Please enter the DisplayName of the Distribution Group name"
+                    Write-Host -ForegroundColor Cyan "Stored in variable `$DL"
+                        ""
+                    #Specify the user to add
+                    $User = read-host "Please enter the Email Address of the user you wish to remove"
+                    Write-Host -ForegroundColor Cyan "Stored in variable `$User"
+                        ""
+                        # Grant the access
+                            Write-Host -ForegroundColor Yellow "....Removing the users access to the DL"
+                            ""
+                            Write-Host -ForegroundColor Green "Running cmdlet:"
+                            Write-Host -ForegroundColor Cyan "Remove-DistributionGroupMember -Identity '$DL' -Member '$User' -BypassSecurityGroupManagerCheck"
+
+                                #The cmdlet
+                                Remove-DistributionGroupMember -Identity "$DL" -Member "$User" -BypassSecurityGroupManagerCheck
+
+                                    #Loop to run it again
+                                    $q=Read-Host "Would you like to remove another user from a distribution group? [Y/N]"
+
+                                    if ($q -eq "Y") {
+                                        Write-Host -ForegroundColor Yellow "You typed $q"
+                                        Write-Host -ForegroundColor Yellow "Lets do it again!"
+                                        pause
+                                      } else {
+                                            Write-Host -ForegroundColor Red "You typed $q"
+                                            Write-Host -ForegroundColor Red "Ending Script"
+                                            Write-Host -ForegroundColor Red "Good bye!!" 
+                                    }
+
+            } while ($q -eq "y")
+
+              #Kill the Switch loop
+              break
+
+          } #End:DelMemb
+          3 <#AddMult#> {
+            do { 
+                Write-Host -ForegroundColor Yellow "User Selected 3. ADD MULTIPLE MEMBERS TO A DISTRIBUTION GROUP"
+                    ""
+                    ""
+                #Null the variables
+                $x=""
+                $path=""
+                $DL=""
+
+                    #Prompt to select the right licence
+                    Write-Host -ForegroundColor Red "THIS PROCESS REQUIRES THAT YOU COMPILE A .CSV FILE WITH THE RELEVANT INFORMATION BEFORE CONTINUING"
+                    ""
+                    pause
+
+                        #CSV Creation info
+                        Write-Host -ForegroundColor Green "**************************************"
+                        Write-Host -ForegroundColor Green "Instructions for creating the CSV file"
+                        Write-Host -ForegroundColor Green "**************************************"
+                            Write-Host -ForegroundColor Yellow " 1. Create a blank Excel document"
+                            Write-Host -ForegroundColor Yellow " 2. Enter the following column header in column A:"
+                            Write-Host -ForegroundColor Green "    EmailAddress"
+                            ""
+                            Write-Host -ForegroundColor Yellow " 3. Fill the column with the email addresses to add to the DL"
+                            Write-Host -ForegroundColor Yellow " 4. Note the full filename and path for use later in the script [e.g. c:\folder\my_file.csv"
+                            ""
+                                #Set the variables
+                                Write-Host -ForegroundColor Red "NOTE: If you have not created the CSV file, please complete the above section before continuing!"
+                                $Path = Read-Host "Please enter the full file path, including the file name of the CSV file you just created"
+                                Write-Host -ForegroundColor Cyan "Stored in variable `$Path"
+                                ""
+                                $DL = Read-Host "Please enter the name of the Distribution Group you wish to add the users to"
+                                Write-Host -ForegroundColor Cyan "Stored in variable `$DL"
+                                ""
+
+                                    #Add Multiple Users
+                                    Write-Host -ForegroundColor Yellow "Adding the users to $DL"
+                                    ""
+                                    Write-Host -ForegroundColor Green "Running cmdlet:"
+                                    Write-Host -ForegroundColor Cyan "Import-Csv -Path $Path | foreach {Add-DistributionGroupMember -Identity $DL -Member `$_.EmailAddress}"
+                                    ""
+                                        #The cmdlet
+                                        Import-Csv -Path $Path | foreach {Add-DistributionGroupMember -Identity $DL -Member $_.EmailAddress}
+                                        Write-Host -ForegroundColor Yellow "Done!"
+
+                                        #Loop to run it again
+                                        $x=Read-Host "Would you like add another batch of users to a distribution group? [Y/N]"
+
+                                        if ($x -eq "Y") {
+                                            Write-Host -ForegroundColor Yellow "You typed $x"
+                                            Write-Host -ForegroundColor Yellow "Lets do it again!"
+                                            pause
+                                          } else {
+                                                Write-Host -ForegroundColor Red "You typed $x"
+                                                Write-Host -ForegroundColor Red "Ending Script"
+                                                Write-Host -ForegroundColor Red "Good bye!!" 
+                                        }
+
+            } while ($x -eq "y")
+
+              #Kill the Switch loop
+              break
+
+          } #End:AddMult
+          4 <#Excl#> { 
+                Write-Host -ForegroundColor Yellow "User Selected 4. EXCLUDE USERS FROM A DYNAMIC DISTRIUBTION GROUP"
+                    ""
+                    ""
+                    Write-Host -ForegroundColor Red "NOTE: THIS PROCESS IS HIGHLY COMPLEX AND COULD PROBABLY BE SCRIPTED BY ~ MONKEYS"
+                    Write-Host -ForegroundColor Yellow "Instead, use the following template to formulate your own cmdlet"
+                        ""
+                        Write-Host -ForegroundColor Cyan "Set-DynamicDistributionGroup 'AllUsers' -RecipientFilter {((((RecipientType -eq 'UserMailbox') -and (-not(DisplayName -like 'Smith, adam')) -and (-not(DisplayName -like 'escott, jason')))) -and (-not(Name -like 'SystemMailbox{*')) -and (-not(Name -like 'CAS_{*')) -and (-not(RecipientTypeDetailsValue -eq 'MailboxPlan')) -and (-not(RecipientTypeDetailsValue -eq 'DiscoveryMailbox')) -and (-not(RecipientTypeDetailsValue -eq 'PublicFolderMailbox')) -and (-not(RecipientTypeDetailsValue -eq 'ArbitrationMailbox')))}"
+                        ""
+                        Write-Host -ForegroundColor Yellow "I suggest reading the theory on this"
+                        ""
+                            Write-Host -ForegroundColor Green "Create Dynamic Distribution Groups Using Customized Filters:"
+                            Write-Host -ForegroundColor Cyan "     https://msdn.microsoft.com/en-us/library/dd264647%28v=exchsrvcs.149%29.aspx"
+            
+            break
+
+          } #End:Excl
+          5 <#NewDL#> { 
+            do {
+                Write-Host -ForegroundColor Yellow "User Selected 5. CREATING A NEW DISTRIBUTION GROUP"
+                ""
+                ""
+                #Null the variable
+                $a=""
+                $DL=""
+
+                  #Specify the Group to amend
+                  $DL = read-host "Please enter the DisplayName of the Distribution Group you wish to create"
+                  Write-Host -ForegroundColor Cyan "Stored in variable `$DL"
+                  ""
+                    #Create the group
+                        Write-Host -ForegroundColor Yellow "Creating the distribution group"
+                        ""
+                        Write-Host -ForegroundColor Green "Running cmdlet:"
+                        Write-Host -ForegroundColor Cyan "New-DistributionGroup -Name '$DL' -Type 'Distribution'"
+                            
+                            #The cmdlet
+                            New-DistributionGroup -Name "$DL" -Type "Distribution"
+
+                                #Pause for user input
+                                pause
+
+                            #Loop to run it again
+                            $a=Read-Host "Would you like create another distribution group? [Y/N]"
+
+                            if ($a -eq "Y") {
+                                Write-Host -ForegroundColor Yellow "You typed $a"
+                                Write-Host -ForegroundColor Yellow "Lets do it again!"
+                                pause
+                              } else {
+                                    Write-Host -ForegroundColor Red "You typed $a"
+                                    Write-Host -ForegroundColor Red "Ending Script"
+                                    Write-Host -ForegroundColor Red "Good bye!!" 
+                            }
+
+             } while ($a -eq "y")
+
+                  #Kill the Switch loop
+                  break
+
+          } #End:NewDL
+          6 <#DelDL#> { 
+            do {
+                Write-Host -ForegroundColor Yellow "User Selected 6. REMOVE A DISTRIBUTION GROUP"
+                ""
+                ""
+                #Null the variable
+                $a=""
+                $DL=""
+
+                    #Get the list of DLs
+                    Write-Host -ForegroundColor Yellow "Showing all distribution groups..."
+                    ""
+                    Write-Host -ForegroundColor Green "Running cmdlet:"
+                    Write-Host -ForegroundColor Cyan "Get-DistributionGroup | fl DisplayName"
+
+                    #The cmdlet
+                    Get-DistributionGroup | fl DisplayName
+
+                      #Specify the Group to amend
+                      $DL = read-host "Please enter the DisplayName of the Distribution Group you wish to remove (listed above)"
+                      Write-Host -ForegroundColor Cyan "Stored in variable `$DL"
+                      ""
+                        #Create the group
+                            Write-Host -ForegroundColor Yellow "Removing the distribution group"
+                            ""
+                            Write-Host -ForegroundColor Green "Running cmdlet:"
+                            Write-Host -ForegroundColor Cyan "Remove-DistributionGroup $DL -BypassSecurityGroupManagerCheck"
+                            
+                                #The cmdlet
+                                Remove-DistributionGroup $DL -BypassSecurityGroupManagerCheck
+
+                                    #Pause for user input
+                                    pause
+
+                                #Loop to run it again
+                                $a=Read-Host "Would you like remove another distribution group? [Y/N]"
+
+                                if ($a -eq "Y") {
+                                    Write-Host -ForegroundColor Yellow "You typed $a"
+                                    Write-Host -ForegroundColor Yellow "Lets do it again!"
+                                    pause
+                                  } else {
+                                        Write-Host -ForegroundColor Red "You typed $a"
+                                        Write-Host -ForegroundColor Red "Ending Script"
+                                        Write-Host -ForegroundColor Red "Good bye!!" 
+                                }
+
+             } while ($a -eq "y")
+
+                  #Kill the Switch loop
+                  break
+
+          } #End:DelDL
+          7 <#ChOwn#> {
+            do {
+                Write-Host -ForegroundColor Yellow "User Selected 7. CHANGE OWNERSHIP OF A DISTRIBUTION GROUP"
+                ""
+                ""
+                #Null the variable
+                $a=""
+                $DL=""
+                $User=""
+
+                    #Get the list of DLs
+                    Write-Host -ForegroundColor Yellow "Showing all distribution groups..."
+                    ""
+                    Write-Host -ForegroundColor Green "Running cmdlet:"
+                    Write-Host -ForegroundColor Cyan "Get-DistributionGroup | fl DisplayName"
+
+                    #The cmdlet
+                    Get-DistributionGroup | fl DisplayName
+
+                      #Specify the Group to amend
+                      $DL = read-host "Please enter the DisplayName of the Distribution Group you wish to amend"
+                      Write-Host -ForegroundColor Cyan "Stored in variable `$DL"
+                      ""
+                      #Specify the user
+                      $User = read-host "Please enter the EmailAddress of the user who will own the group"
+                      Write-Host -ForegroundColor Cyan "Stored in variable `$User"
+                      ""
+                        #Create the group
+                            Write-Host -ForegroundColor Yellow "Changing the owner..."
+                            ""
+                            Write-Host -ForegroundColor Green "Running cmdlet:"
+                            Write-Host -ForegroundColor Cyan "Set-DistributionGroup $DL -ManagedBy '$User' -BypassSecurityGroupManagerCheck"
+                            
+                                #The cmdlet
+                                Set-DistributionGroup $DL -ManagedBy "$User" -BypassSecurityGroupManagerCheck
+
+                                    #Pause for user input
+                                    pause
+
+                                #Loop to run it again
+                                $a=Read-Host "Would you like remove another distribution group? [Y/N]"
+
+                                if ($a -eq "Y") {
+                                    Write-Host -ForegroundColor Yellow "You typed $a"
+                                    Write-Host -ForegroundColor Yellow "Lets do it again!"
+                                    pause
+                                  } else {
+                                        Write-Host -ForegroundColor Red "You typed $a"
+                                        Write-Host -ForegroundColor Red "Ending Script"
+                                        Write-Host -ForegroundColor Red "Good bye!!" 
+                                }
+
+             } while ($a -eq "y")
+
+                  #Kill the Switch loop
+                  break
+
+          } #End:ChOwn
+          8 <#ListMem#> {
+            do {
+                Write-Host -ForegroundColor Yellow "User Selected 8. LIST MEMBERS OF A DISTRIBUTION GROUP"
+                ""
+                ""
+                #Null the variable
+                $a=""
+                $DL=""
+
+                    #Get the list of DLs
+                    Write-Host -ForegroundColor Yellow "Showing all distribution groups..."
+                    ""
+                    Write-Host -ForegroundColor Green "Running cmdlet:"
+                    Write-Host -ForegroundColor Cyan "Get-DistributionGroup | fl DisplayName"
+
+                    #The cmdlet
+                    Get-DistributionGroup | fl DisplayName
+
+                      #Specify the Group to amend
+                      $DL = read-host "Please enter the DisplayName of the Distribution Group you wish to show"
+                      Write-Host -ForegroundColor Cyan "Stored in variable `$DL"
+                      ""
+
+                        #Show the list
+                            Write-Host -ForegroundColor Yellow "Displaying the members of $DL"
+                            ""
+                            Write-Host -ForegroundColor Green "Running cmdlet:"
+                            Write-Host -ForegroundColor Cyan "Get-DistributionGroupMember -identity $DL| sort DisplayName"
+                            
+                                #The cmdlet
+                                Get-DistributionGroupMember -identity $DL| sort DisplayName
+
+                                    #Pause for user input
+                                    pause
+
+                                #Loop to run it again
+                                $a=Read-Host "Would you like remove another distribution group? [Y/N]"
+
+                                if ($a -eq "Y") {
+                                    Write-Host -ForegroundColor Yellow "You typed $a"
+                                    Write-Host -ForegroundColor Yellow "Lets do it again!"
+                                    pause
+                                  } else {
+                                        Write-Host -ForegroundColor Red "You typed $a"
+                                        Write-Host -ForegroundColor Red "Ending Script"
+                                        Write-Host -ForegroundColor Red "Good bye!!" 
+                                }
+
+             } while ($a -eq "y")
+
+                  #Kill the Switch loop
+                  break
+
+          } #End:ListMem
+          9 <#$Canc#> {
+                Write-Host -ForegroundColor Yellow "User Selected 9. CANCEL"
+                ""
+                ""
+                    exit
+                    break
+
+          } #End:Canc
+        } #End Switch
+
+                #Loop to run it again
+                $h=Read-Host "Would you like to manage distribution groups again? [Y/N]"
+
+                if ($h -eq "Y") {
+                    Write-Host -ForegroundColor Yellow "You typed $h"
+                    Write-Host -ForegroundColor Yellow "Lets do it again!"
+                    pause
+                  } else {
+                        Write-Host -ForegroundColor Red "You typed $h"
+                        Write-Host -ForegroundColor Red "Ending Script"
+                        Write-Host -ForegroundColor Red "Good bye!!" 
+                }
+
+    } while ($h -eq "y")
+
+      #Kill the Switch loop
+      break
+
+    } #End:DistGrpMan
+    3 <#MBPerms#> {
+      do {
+        Write-Host -ForegroundColor Yellow "User Selected 3. MAILBOX PERMISSION MANAGEMENT"
+        ""
+        ""
+        #Null vars
+        $e=""
+        
+            # Mailbox Script Selection
+            $title = "Mailbox Permission Management"
+            $message = "What would you like to do?
+    
+            Hover over each box for more info"
+
+            $AddPermFC = New-Object System.Management.Automation.Host.ChoiceDescription "&Add Full Control","Add Full Control permissions to a mailbox"                         #0
+            $AddPermSA = New-Object System.Management.Automation.Host.ChoiceDescription "&Add Send-As","Add Send-As permissions to a mailbox"                                   #1
+            $AddPermSB = New-Object System.Management.Automation.Host.ChoiceDescription "&Add Send-on-Behalf-of","Add Send-on-Behalf-of permissions to a mailbox"               #2
+            $RemPermFC = New-Object System.Management.Automation.Host.ChoiceDescription "&Remove Full Control","Remove Full Control permissions to a mailbox"                   #3
+            $RemPermSA = New-Object System.Management.Automation.Host.ChoiceDescription "&Remove Send-As","Remove Send-As permissions to a mailbox"                             #4
+            $RemPermSB = New-Object System.Management.Automation.Host.ChoiceDescription "&Remove Send-on-Behalf-of","Remove Send-on-Behalf-of permissions to a mailbox"         #5
+            $DisPerm = New-Object System.Management.Automation.Host.ChoiceDescription "&Display Given Permissions","Show permissions assigned to a mailbox"                     #6
+            $Canc = New-Object System.Management.Automation.Host.ChoiceDescription "&Cancel","Close and Exit"                        #7
+
+            $options = [System.Management.Automation.Host.ChoiceDescription[]]($AddPermFC, $AddPermSA, $AddPermSB, $RemPermFC, $RemPermSA, $RemPermSB, $DisPerm, $Canc)
+
+            $result = $host.ui.PromptForChoice($title, $message, $options, 7)
+
+            switch ($result) {
+              0 <#AddPermFC#> {
+                do {
+                    Write-Host -ForegroundColor Yellow "User Selected 0. ADDING FULL CONTROL PERMISSIONS"
+                        ""
+                        ""
+                        #Null Vars
+                        $b=""
+                            
+                            #Script
+                            Write-Host -ForegroundColor Yellow "To Grant 'UserA' Full Control to 'UserB' Mailbox."
+                            ""
+                            #Show the list of mailbox
+                            Write-Host -ForegroundColor Yellow "Displaying a list of users...."
+                            ""
+                            Write-Host -ForegroundColor Green "Running cmdlet:"
+                            Write-Host -ForegroundColor Cyan "Get-Mailbox | Select PrimarySmtpAddress | Ft"
+                                Get-Mailbox | Select PrimarySmtpAddress | Ft
+                                ""
+                            #Specify Admin account
+	                        $UserA = read-host "Please enter the Email Address of the User who needs access to User B's mailbox"
+                            Write-Host -ForegroundColor Cyan "Stored in variable `$UserA"
+                            ""
+                            #Specify USER-B's account
+	                        $UserB = read-host "Please enter the Email Address of the User whose mailbox is being amended"
+                            Write-Host -ForegroundColor Cyan "Stored in variable `$UserB"
+                            ""
+                                Write-Host -ForegroundColor Yellow "Giving FullControl to $UserA on $UserB's mailbox"
+                                ""
+                                Write-Host -ForegroundColor Green "Running cmdlet:"
+                                Write-Host -ForegroundColor Cyan "Add-MailboxPermission $UserB -User $UserA -AccessRights FullAccess -Confirm:`$False"
+                                ""
+                                    #The cmdlet
+                                    Add-MailboxPermission $UserB -User $UserA -AccessRights FullAccess -Confirm:$False
+                                    Write-Host -ForegroundColor Yellow "Done!"
+
+                                        #Loop to run it again
+                                        $b=Read-Host "Would you like to do this again? [Y/N]"
+
+                                        if ($b -eq "Y") {
+                                            Write-Host -ForegroundColor Yellow "You typed $b"
+                                            Write-Host -ForegroundColor Yellow "Lets do it again!"
+                                            pause
+                                          } else {
+                                                Write-Host -ForegroundColor Red "You typed $b"
+                                                Write-Host -ForegroundColor Red "Ending Script"
+                                                Write-Host -ForegroundColor Red "Good bye!!" 
+                                        }
+
+                } while ($b -eq "y")
+
+                    #Kill the Switch loop
+                    break
+
+              } #End:AddPermFC
+              1 <#AddPermSA#> {
+                do {
+                    Write-Host -ForegroundColor Yellow "User Selected 1. ADDING SEND-AS PERMISSIONS"
+                        ""
+                        ""
+                        #Null Vars
+                        $b=""
+                            
+                            #Script
+                            Write-Host -ForegroundColor Yellow "Grant 'UserA' Send-As Permissions to 'UserB' Mailbox"
+                            ""
+                            #Show the list of mailbox
+                            Write-Host -ForegroundColor Yellow "Displaying a list of users...."
+                            ""
+                            Write-Host -ForegroundColor Green "Running cmdlet:"
+                            Write-Host -ForegroundColor Cyan "Get-Mailbox | Select PrimarySmtpAddress | Ft"
+                                Get-Mailbox | Select PrimarySmtpAddress | Ft
+                                ""
+                            #Specify Admin account
+	                        $UserA = read-host "Please enter the Email Address of the User who needs access to User B's mailbox"
+                            Write-Host -ForegroundColor Cyan "Stored in variable `$UserA"
+                            ""
+                            #Specify USER-B's account
+	                        $UserB = read-host "Please enter the Email Address of the User whose mailbox is being amended"
+                            Write-Host -ForegroundColor Cyan "Stored in variable `$UserB"
+                            ""
+                                Write-Host -ForegroundColor Yellow "Giving SendAs to $UserA on $UserB's mailbox"
+                                ""
+                                Write-Host -ForegroundColor Green "Running cmdlet:"
+                                Write-Host -ForegroundColor Cyan "Add-RecipientPermission $UserB -AccessRights SendAs -Trustee $UserA -Confirm:`$False"
+                                ""
+                                    #The cmdlet
+                                    Add-RecipientPermission $UserB -AccessRights SendAs -Trustee $UserA -Confirm:$False
+                                    Write-Host -ForegroundColor Yellow "Done!"
+
+                                        #Loop to run it again
+                                        $b=Read-Host "Would you like to do this again? [Y/N]"
+
+                                        if ($b -eq "Y") {
+                                            Write-Host -ForegroundColor Yellow "You typed $b"
+                                            Write-Host -ForegroundColor Yellow "Lets do it again!"
+                                            pause
+                                          } else {
+                                                Write-Host -ForegroundColor Red "You typed $b"
+                                                Write-Host -ForegroundColor Red "Ending Script"
+                                                Write-Host -ForegroundColor Red "Good bye!!" 
+                                        }
+
+                } while ($b -eq "y")
+
+                    #Kill the Switch loop
+                    break
+     } #End:AddPermSA
+              2 <#AddPermSB#> {
+    Write-Host -ForegroundColor Yellow "User Selected 2. ADDING SEND-ON-BEHALF-OF PERMISSIONS"
+        ""
+        ""
+        Write-Host -ForegroundColor Cyan "Grant 'UserA' Send-On-Behalf-Of Permissions to 'UserB' Mailbox"
+        ""
+        #Specify Admin account
+	    $UserA = read-host "Please enter the Email Address of the User who needs access to User B's mailbox"
+
+        #Specify USER-B's account
+	    $UserB = read-host "Please enter the Email Address of the User whose mailbox is being amended"
+
+        Set-Mailbox -Identity $UserB -GrantSendOnBehalfTo $UserA
+     } #End:AddPermSB
+              3 <#RemPermFC#> { 
+    Write-Host -ForegroundColor Yellow "User Selected 3. REMOVING FULL CONTROL PERMISSIONS"
+        ""
+        ""
+        Write-Host -ForegroundColor Cyan "Remove 'UserA' Full Control from 'UserB' Mailbox."
+        ""
+        #Specify Admin account
+	    $UserA = read-host "Please enter the Email Address of the User who has full access to User B's mailbox"
+
+        #Specify USER-B's account
+	    $UserB = read-host "Please enter the Email Address of the User whose mailbox is being amended"
+
+        Remove-MailboxPermission $UserB -User $UserA -AccessRights FullAccess -Confirm:$False
+
+     } #End:RemPermFC
+              4 <#RemPermSA#> { 
+    Write-Host -ForegroundColor Yellow "User Selected 4. REMOVING SEND-AS PERMISSIONS"
+        ""
+        ""
+        Write-Host -ForegroundColor Cyan "Remove 'UserA' Send-As Permissions from 'UserB' Mailbox"
+        ""
+        #Specify Admin account
+	    $UserA = read-host "Please enter the Email Address of the User who has Send-As permissions on User B's mailbox"
+
+        #Specify USER-B's account
+	    $UserB = read-host "Please enter the Email Address of the User whose mailbox is being amended"
+
+        Remove-RecipientPermission $UserB -AccessRights SendAs -Trustee $UserA -Confirm:$False
+     } #End:RemPermSA
+              5 <#RemPermSB#> { 
+    Write-Host -ForegroundColor Yellow "User Selected 5. REMOVING SEND-ON-BEHALF-OF PERMISSIONS"
+        ""
+        ""
+        Write-Host -ForegroundColor Cyan "Remove 'UserA' Send-On-Behalf-Of Permissions from 'UserB' Mailbox"
+        ""
+        #Specify Admin account
+	    $UserA = read-host "Please enter the Email Address of the User who has SOBO Access to User B's mailbox"
+
+        #Specify USER-B's account
+	    $UserB = read-host "Please enter the Email Address of the User whose mailbox is being amended"
+
+        Set-Mailbox -Identity $UserB -GrantSendOnBehalfTo $UserA
+
+     } #End:RemPermSB
+              6 <#$DisPerm#> { 
+    Write-Host -ForegroundColor Yellow "User Selected 6. DISPLAYING PERMISSIONS"
+    ""
+    ""
+    Write-Host -ForegroundColor Cyan "Display Access Permissions (Respectively) for a Mailbox"
+    ""
+    $UserB = read-host "Please enter the Email Address of the User whose mailbox you would like to check"
+    ""
+    # DistGrp Script Selection
+    $title = "Mailbox Permission Management"
+    $message = "Which Permissions would you like to check?"
+
+    $FaPerm = New-Object System.Management.Automation.Host.ChoiceDescription "&Full Control","Check Full Control permissions"                         #0
+    $SaPerm = New-Object System.Management.Automation.Host.ChoiceDescription "&Send-As","Check Send-As permissions"                                   #1
+    $SoboPerm = New-Object System.Management.Automation.Host.ChoiceDescription "&SOBO","Check Send-on-Behalf-of permissions"               #2
+    $Canc = New-Object System.Management.Automation.Host.ChoiceDescription "&Cancel","Close and Exit"                        #7
+
+    $options = [System.Management.Automation.Host.ChoiceDescription[]]($FaPerm, $SaPerm, $SoboPerm, $Canc)
+
+    $result = $host.ui.PromptForChoice($title, $message, $options, 3)
+
+    switch ($result) {
+    0 <#FaPerm#> { 
+    Write-Host -ForegroundColor Yellow "User Selected 0. CHECK FULL ACCESS PERMISSIONS"
+        Get-MailboxPermission $UserB
+     } #End:FaPerm
+    1 <#SaPerm#> { 
+    Write-Host -ForegroundColor Yellow "User Selected 1. CHECK SEND-AS PERMISSIONS"
+        Get-RecipientPermission $UserB
+
+     } #End:SaPerm
+    2 <#SoboPerm#> { 
+    Write-Host -ForegroundColor Yellow "User Selected 2. CHECK SEND-ON-BEHALF-OF-PERMISSIONS"
+        Get-Mailbox $UserB
+
+     } #End:SoboPerm
+    3 <#$Canc#> { 
+    Write-Host -ForegroundColor Yellow "User Selected 3. CANCEL"
+    ""
+    ""
+    Write-Host -ForegroundColor Yellow "Exiting"
+    Write-Host -ForegroundColor Red "Script Ended Prematurely"
+    Write-Host -ForegroundColor Red "Script is sad that it didn't get a run"
+    exit
+     } #End:Canc
+      } #End:Switch
+  } #End:DisPerm 
+            } #End Switch
+      } while ($e -eq "y")
+
+        #Kill the Switch loop
+        break
+
+     } #End:MBPerms
+    4 <#SafeSend#> {
+    Write-Host -ForegroundColor Yellow "User Selected 4. MODIFYING THE SAFE SENDER LIST"
+
+     } #End 4
+    5 <#SendAs [OVERWRITE]#> {
+    Write-Host -ForegroundColor Yellow "User Selected 5. ADDING SEND AS PERMISSIONS"
+
+     } #End 5
+    6 <#AddAlias#> {
+    Write-Host -ForegroundColor Yellow "User Selected 6. ADDING AN ALIAS TO A MAILBOX"
+    #Get the email address
+        $Email = Read-Host "Please enter the name of the mailbox you wish to amend"
+        $Alias = Read-Host "Please enter the alias email address"
+
+        #Do the work
+        Set-Mailbox "$email" -EmailAddresses $alias
+
+        #Check the work
+        Get-Mailbox  "$email" | Select EmailAddresses
+     } #End 6
+    7 <#PriSMTP#> {
+    Write-Host -ForegroundColor Yellow "User Selected 7. MODIFYING THE PRIMARY SMTP ADDRESS"
+
+        $id=Read-Host "Please enter the bit before the @"
+        $SMTP=Read-Host "please enter the primary email address"
+        $SMTP2=Read-Host "please enter the secondary email address"
+        #$SMTP3=Read-Host "please enter the secondary email address"
+        #$SMTP4=Read-Host "please enter the secondary email address"
+
+        # Uncomment the green lines to add more
+        get-mailbox -Identity $id | Set-Mailbox -EmailAddresses SMTP:$SMTP,smtp:$SMTP2 #,smtp:$SMTP3 #,smtp:$SMTP4
+     } #End 7
+    8 <#Canc#> {
+    Write-Host -ForegroundColor Yellow "User Selected 8. CANCEL"
+        Write-Host -ForegroundColor Red "Action Cancelled"
+     } #End 8
+  } #End Switch
+
+ } else <#CANC#> {
+        Write-Host -ForegroundColor Yellow "Exiting"
+        Write-Host -ForegroundColor Red "Script Ended Prematurely"
+        Write-Host -ForegroundColor Red "Script is sad that it didn't get a run"
+        exit
+    } #EndElse
+
+    Write-Host -ForegroundColor Yellow "End[ScriptManagementShell]"
+    ""
+    #End[ScriptManagementShell]
+
+
+    #########################
+    #########################
+    "-------------------"
+    Write-Host -ForegroundColor Green "SECTION 6: Begin[CleanSession]"
+    "-------------------"
+    #Begin[CleanSession]
+    $testpath=Test-Path C:\Users\$env:USERNAME\AppData\Local\Microsoft\Windows\PowerShell\temp_cred.txt
+    if ($testpath) {
+        rm $credpath
+        Write-Host -ForegroundColor Yellow "Variables Removed"
+      } else {
+        Write-Host -ForegroundColor Yellow "No variables to remove"
+    }
+
+    if ($session) {
+        Remove-PSSession $Session
+        Write-Host -ForegroundColor Yellow "Session Removed"
+        Write-Host -ForegroundColor Yellow "End[CleanSession]"
+      } else {
+      ""
+      Write-Host -ForegroundColor Yellow "No Session to Remove"
+      ""
+      Write-Host -ForegroundColor Yellow "End[CleanSession]"
+      }
+  
+  
+    pause
+    #End[CleanSession]
+} #End[QuickConnect]
+
+#######################################################
+# NOTES
+#
+#   1. Cyan coloured commands for the user
+#   2. Do While loop takes the user back to the start of that script
+#   3.  
+#
+#######################################################
