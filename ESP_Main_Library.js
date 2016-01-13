@@ -8,32 +8,33 @@
 // ******************************************************************************* //
 
 // Used to display client alerts on the Quote entity
-    function quote_Display_Alerts() {
+function quote_Display_Alerts() {
 
-        var alertArray = null;
-        var myAlert = null;
+    // set the value of the new_clientalerts field
+    Xrm.Page.ui.tabs.get("Summary_tab").sections.get("alerts_section").setVisible(true);
 
-        // Specify the connection URL
-        var serverURL = Xrm.Page.context.getClientUrl();
-        var queryURL = serverURL + "/XRMServices/2011/OrganizationData.svc/new_alertsSet?$select=new_alertsId,new_Alert,new_Message,new_ClientId,new_Category"
+    var alertArray = null;
+    var myAlert = null;
 
-        // Sets the Html request
-        var req = new XMLHttpRequest();
-        req.open("GET", queryURL, false) // Must specify false here to run synchronously
-        req.setRequestHeader("Accept", "application/json");
-        req.setRequestHeader("Content-Type", "application/json; charset=utf-8");
-        req.send();
+    // Specify the connection URL
+    var serverURL = Xrm.Page.context.getClientUrl();
+    var queryURL = serverURL + "/XRMServices/2011/OrganizationData.svc/new_alertsSet?$select=new_alertsId,new_Alert,new_Message,new_ClientId,new_Category"
 
-        // Process the results
-        var results = JSON.parse(req.responseText).d.results;
-        if (results != null && results.length > 0) {
-            alertArray = results[0];
-            myAlert = alertArray.new_Alert;
-        }
+    // Sets the Html request
+    var req = new XMLHttpRequest();
+    req.open("GET", queryURL, false) // Must specify false here to run synchronously
+    req.setRequestHeader("Accept", "application/json");
+    req.setRequestHeader("Content-Type", "application/json; charset=utf-8");
+    req.send();
 
-       // set the value of the new_clientalerts field
-        Xrm.Page.ui.tabs.get("Summary_tab").sections.get("alerts_section").setVisible(true);
-        Xrm.Page.getAttribute("new_clientalerts").setValue(myAlert);
-        Xrm.Page.getAttribute("new_clientalerts").setSubmitMode("always"); // always put this after setting the value as a field to prevent readonly errors
-
+    // Process the results
+    var results = JSON.parse(req.responseText).d.results;
+    if (results != null && results.length > 0) {
+        alertArray = results[0];
+        myAlert = alertArray.new_Alert;
     }
+
+    Xrm.Page.getAttribute("new_clientalerts").setValue(myAlert);
+    Xrm.Page.getAttribute("new_clientalerts").setSubmitMode("always"); // always put this after setting the value as a field to prevent readonly errors
+
+}
